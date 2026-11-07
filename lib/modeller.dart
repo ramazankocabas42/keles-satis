@@ -220,13 +220,17 @@ class Firma {
       );
 }
 
-/// "1.234,5" / "1234.5" / "1 234" gibi yazımları sayıya çevirir.
+/// "1.234,5" / "3.125" / "12.5" / "1 234" gibi yazımları sayıya çevirir.
+/// Virgül yoksa ve noktalar üçlü gruplar ayırıyorsa binlik ayırıcı sayılır.
 double? sayiOku(String? v) {
   if (v == null) return null;
   var s = v.trim().replaceAll(' ', '').replaceAll('₺', '');
   if (s.isEmpty) return null;
   if (s.contains(',')) {
     s = s.replaceAll('.', '').replaceAll(',', '.');
+  } else if (RegExp(r'^-?\d{1,3}(\.\d{3})+$').hasMatch(s)) {
+    // "3.125" / "1.250.000": Türkçe binlik ayırıcı
+    s = s.replaceAll('.', '');
   }
   return double.tryParse(s);
 }

@@ -80,9 +80,8 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
     builder: (ctx) {
       final musteri = TextEditingController();
       final urun = TextEditingController();
-      final miktar = TextEditingController();
+      final hesap = FiyatHesap();
       final not = TextEditingController();
-      final fiyat = TextEditingController();
       final musteriOdak = FocusNode();
       final urunOdak = FocusNode();
       var birim = f.birimListesi.first;
@@ -101,13 +100,16 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
               birim = u.birim;
               birimAnahtar++;
             }
-            if (u.fiyat != null && fiyat.text.isEmpty) fiyat.text = girdi(u.fiyat);
+            if (u.fiyat != null && hesap.fiyat.text.isEmpty) {
+              hesap.fiyat.text = girdi(u.fiyat);
+              hesap.fiyatDegisti();
+            }
           });
         }
 
         Future<void> kaydet() async {
-          final m = sayiOku(miktar.text);
-          final fy = sayiOku(fiyat.text);
+          final m = hesap.m;
+          final fy = hesap.kaydedilecekFiyat;
           if (musteri.text.trim().isEmpty || urun.text.trim().isEmpty) {
             bildir(ctx, 'Müşteri ve ürünü yazın.');
             return;
@@ -116,7 +118,7 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
             bildir(ctx, 'Geçerli bir miktar girin.');
             return;
           }
-          if (fiyat.text.trim().isNotEmpty && (fy == null || fy < 0)) {
+          if (!hesap.bos && (fy == null || fy < 0)) {
             bildir(ctx, 'Fiyat geçersiz.');
             return;
           }
@@ -202,8 +204,8 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
             const SizedBox(height: 12),
             _ikili(
               TextField(
-                controller: miktar,
-                onChanged: (_) => set(() {}),
+                controller: hesap.miktar,
+                onChanged: (_) => set(hesap.miktarDegisti),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Miktar', hintText: '0'),
               ),
@@ -213,19 +215,8 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: fiyat,
-              onChanged: (_) => set(() {}),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                  labelText: 'Birim fiyat (₺ / $birim)',
-                  hintText: 'Biliyorsanız yazın, boş bırakılabilir'),
-            ),
-            const SizedBox(height: 12),
-            _CanliToplam(
-                miktar: sayiOku(miktar.text),
-                fiyat: sayiOku(fiyat.text),
-                birim: birim),
+            ..._fiyatAlanlari(hesap, birim, set,
+                ipucu: 'Biliyorsanız yazın, boş bırakılabilir'),
             TextField(
               controller: not,
               maxLines: 2,
@@ -246,52 +237,99 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
   );
 }
 
-/// "250 kg × 12,50 ₺ = 3.125,00 ₺" şeklinde anında hesaplanan toplam.
-class _CanliToplam extends StatelessWidget {
-  const _CanliToplam(
-      {required this.miktar, required this.fiyat, required this.birim});
-  final double? miktar;
-  final double? fiyat;
-  final String birim;
-
-  @override
-  Widget build(BuildContext context) {
-    final hazir = miktar != null && miktar! > 0 && fiyat != null && fiyat! >= 0;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Renk.girdi,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: hazir ? Renk.altin2 : const Color(0xFF3A4A78), width: 2),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Toplam tutar',
-                    style: TextStyle(color: Renk.soluk, fontSize: 13)),
-                if (hazir)
-                  Text('${sayi(miktar!)} $birim × ${tl(fiyat!)}',
-                      style: const TextStyle(fontSize: 13.5)),
-              ],
-            ),
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(hazir ? tl(miktar! * fiyat!) : '—',
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: hazir ? Renk.altin : Renk.soluk)),
-          ),
-        ],
-      ),
-    );
+/// Miktar, birim fiyat ve toplam tutar kutularını birbirine bağlar:
+/// fiyat yazılınca toplam, toplam yazılınca fiyat kendiliğinden hesaplanır.
+class FiyatHesap {
+  FiyatHesap({double? miktar, double? fiyat})
+      : miktar = TextEditingController(text: girdi(miktar)),
+        fiyat = TextEditingController(text: girdi(fiyat)) {
+    _fiyattanToplam();
   }
+
+  final TextEditingController miktar;
+  final TextEditingController fiyat;
+  final TextEditingController toplam = TextEditingController();
+
+  /// Kullanıcı en son toplam tutarı mı yazdı?
+  bool toplamGirildi = false;
+
+  double? get m => sayiOku(miktar.text);
+  bool get bos => fiyat.text.trim().isEmpty && toplam.text.trim().isEmpty;
+
+  void miktarDegisti() => toplamGirildi ? _toplamdanFiyat() : _fiyattanToplam();
+
+  void fiyatDegisti() {
+    toplamGirildi = false;
+    _fiyattanToplam();
+  }
+
+  void toplamDegisti() {
+    toplamGirildi = toplam.text.trim().isNotEmpty;
+    _toplamdanFiyat();
+  }
+
+  void _fiyattanToplam() {
+    final m = this.m, p = sayiOku(fiyat.text);
+    toplam.text = (m != null && m > 0 && p != null && p >= 0)
+        ? girdi(double.parse((m * p).toStringAsFixed(2)))
+        : '';
+  }
+
+  void _toplamdanFiyat() {
+    final m = this.m, t = sayiOku(toplam.text);
+    fiyat.text = (m != null && m > 0 && t != null && t >= 0)
+        ? girdi(double.parse((t / m).toStringAsFixed(4)))
+        : '';
+  }
+
+  /// Kaydedilecek birim fiyat. Toplam elle yazıldıysa tam bölüm kullanılır,
+  /// böylece siparişin toplamı yazılan rakamla kuruşu kuruşuna aynı olur.
+  double? get kaydedilecekFiyat {
+    final m = this.m;
+    if (toplamGirildi) {
+      final t = sayiOku(toplam.text);
+      if (m != null && m > 0 && t != null && t >= 0) return t / m;
+    }
+    return sayiOku(fiyat.text);
+  }
+}
+
+List<Widget> _fiyatAlanlari(
+    FiyatHesap h, String birim, StateSetter set,
+    {String? ipucu, bool odak = false}) {
+  final m = h.m, p = h.kaydedilecekFiyat;
+  final hazir = m != null && m > 0 && p != null && p >= 0;
+  final altin = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: const BorderSide(color: Renk.altin2, width: 2),
+  );
+  return [
+    TextField(
+      controller: h.fiyat,
+      autofocus: odak,
+      onChanged: (_) => set(h.fiyatDegisti),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+          labelText: 'Birim fiyat (₺ / $birim)', hintText: ipucu ?? '0,00'),
+    ),
+    const SizedBox(height: 12),
+    TextField(
+      controller: h.toplam,
+      onChanged: (_) => set(h.toplamDegisti),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      style: const TextStyle(
+          fontSize: 20, fontWeight: FontWeight.w800, color: Renk.altin),
+      decoration: InputDecoration(
+        labelText: 'Toplam tutar (₺)',
+        hintText: 'Toplamı yazarsanız birim fiyat hesaplanır',
+        prefixText: '₺ ',
+        enabledBorder: altin,
+        helperText: hazir ? '${sayi(m ?? 0)} $birim × ${tl(p ?? 0)} = ${tl((m ?? 0) * (p ?? 0))}' : null,
+        helperStyle: const TextStyle(color: Renk.soluk, fontSize: 13),
+      ),
+    ),
+    const SizedBox(height: 14),
+  ];
 }
 
 class _UrunKaresi extends StatelessWidget {
@@ -302,7 +340,9 @@ class _UrunKaresi extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Ink(
@@ -326,6 +366,7 @@ class _UrunKaresi extends StatelessWidget {
             ),
           ),
         ),
+        ),
       );
 }
 
@@ -337,15 +378,14 @@ Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
     baslik: '🏷️ Fiyat Gir · #${s.no}',
     aciklama: '${s.musteri} — ${s.urun}',
     builder: (ctx) {
-      final miktar = TextEditingController(text: girdi(s.miktar));
       final varsayilan = s.fiyat ?? d.firma?.urunBul(s.urun)?.fiyat;
-      final fiyat = TextEditingController(text: girdi(varsayilan));
+      final hesap = FiyatHesap(miktar: s.miktar, fiyat: varsayilan);
       final birimler = {...d.firma!.birimListesi, if (s.birim.isNotEmpty) s.birim}.toList();
       var birim = s.birim.isEmpty ? birimler.first : s.birim;
       var mesgul = false;
       return StatefulBuilder(builder: (ctx, set) {
-        final m = sayiOku(miktar.text), p = sayiOku(fiyat.text);
         Future<void> kaydet() async {
+          final m = hesap.m, p = hesap.kaydedilecekFiyat;
           if (m == null || m <= 0 || p == null || p < 0) {
             bildir(ctx, 'Miktar ve fiyatı kontrol edin.');
             return;
@@ -374,24 +414,15 @@ Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
           children: [
             _ikili(
               TextField(
-                controller: miktar,
-                onChanged: (_) => set(() {}),
+                controller: hesap.miktar,
+                onChanged: (_) => set(hesap.miktarDegisti),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Miktar (kesin)'),
               ),
               _birimSecici(birimler, birim, (v) => set(() => birim = v)),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: fiyat,
-              autofocus: s.fiyat == null,
-              onChanged: (_) => set(() {}),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                  labelText: 'Birim fiyat (₺)', hintText: '0,00'),
-            ),
-            const SizedBox(height: 12),
-            _CanliToplam(miktar: m, fiyat: p, birim: birim),
+            ..._fiyatAlanlari(hesap, birim, set, odak: s.fiyat == null),
             _butonlar(ctx,
                 yazi: 'Fiyatı Kaydet',
                 renk: ButonRenk.sari,
@@ -833,7 +864,9 @@ Future<void> urunDuzenle(BuildContext context, Durum d, int index) {
               crossAxisSpacing: 6,
               children: [
                 for (final e in simgeler)
-                  InkWell(
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
                     borderRadius: BorderRadius.circular(10),
                     onTap: () => set(() => em = e),
                     child: Ink(
@@ -847,6 +880,7 @@ Future<void> urunDuzenle(BuildContext context, Durum d, int index) {
                       child: Center(
                           child: Text(e, style: const TextStyle(fontSize: 20))),
                     ),
+                  ),
                   ),
               ],
             ),

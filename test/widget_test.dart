@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:keles_satis/ekranlar/formlar.dart';
 import 'package:keles_satis/modeller.dart';
 
 Siparis _s({double? fiyat, bool teslim = false, List<double> odemeler = const []}) =>
@@ -44,6 +45,9 @@ void main() {
     expect(sayiOku('1.234,5'), 1234.5);
     expect(sayiOku('12,75'), 12.75);
     expect(sayiOku('15.5'), 15.5);
+    expect(sayiOku('3.125'), 3125);
+    expect(sayiOku('1.250.000'), 1250000);
+    expect(sayiOku('2.50'), 2.5);
     expect(sayiOku(' 2 500 '), 2500);
     expect(sayiOku(''), isNull);
     expect(sayiOku('abc'), isNull);
@@ -65,5 +69,39 @@ void main() {
     expect(f.urunBul(' domates ')?.birim, 'kasa');
     expect(f.birimListesi, varsayilanBirimler);
     expect(f.yonetici('u'), isTrue);
+  });
+
+  test('Toplam yazılınca birim fiyat hesaplanır', () {
+    final h = FiyatHesap();
+    h.miktar.text = '250';
+    h.miktarDegisti();
+    h.toplam.text = '3.125';
+    h.toplamDegisti();
+    expect(h.fiyat.text, '12,5');
+    expect(h.kaydedilecekFiyat, 12.5);
+
+    // Miktar değişince, son yazılan toplam sabit kalır, fiyat yeniden hesaplanır.
+    h.miktar.text = '500';
+    h.miktarDegisti();
+    expect(h.fiyat.text, '6,25');
+
+    // Bölünmeyen tutarda kaydedilen fiyat toplamı birebir tutturur.
+    h.miktar.text = '3';
+    h.toplam.text = '1000';
+    h.toplamDegisti();
+    expect(h.fiyat.text, '333,3333');
+    expect((h.kaydedilecekFiyat! * 3).toStringAsFixed(2), '1000.00');
+  });
+
+  test('Fiyat yazılınca toplam hesaplanır', () {
+    final h = FiyatHesap(miktar: 120, fiyat: null);
+    h.fiyat.text = '17,75';
+    h.fiyatDegisti();
+    expect(h.toplam.text, '2130');
+    expect(h.toplamGirildi, isFalse);
+    h.toplam.text = '';
+    h.toplamDegisti();
+    expect(h.fiyat.text, '');
+    expect(h.bos, isTrue);
   });
 }

@@ -700,7 +700,8 @@ Future<T?> altSayfa<T>(BuildContext context,
           border: Border(top: BorderSide(color: Renk.altin, width: 3)),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
+          padding: EdgeInsets.fromLTRB(
+              16, 18, 16, 20 + MediaQuery.of(ctx).viewPadding.bottom),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
