@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../bicim.dart';
 import '../modeller.dart';
+import '../servis/bildirim.dart';
 import '../servis/guncelleme.dart';
 import '../servis/veri.dart';
 import '../tema.dart';
@@ -25,7 +26,10 @@ class _AnaKabukState extends State<AnaKabuk> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    final d = widget.durum;
+    Hareketler.oturum(d.fid, d.uid, d.yonetici);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Bildirim.izinIste();
       if (mounted) Guncelleme.kontrolEt(context);
     });
   }

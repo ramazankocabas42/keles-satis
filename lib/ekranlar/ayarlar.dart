@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../bicim.dart';
+import '../servis/bildirim.dart';
 import '../servis/guncelleme.dart';
 import '../servis/veri.dart';
 import '../tema.dart';
@@ -22,12 +23,16 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
   late final _adim = TextEditingController(text: '');
   final _birim = TextEditingController();
   bool _adYuklendi = false;
+  Map<String, bool>? _bildirim;
 
   Durum get d => widget.durum;
 
   @override
   void initState() {
     super.initState();
+    Hareketler.tercihleriOku().then((t) {
+      if (mounted) setState(() => _bildirim = t);
+    });
     Veri.kullanicilar.doc(d.uid).get().then((s) {
       if (!mounted) return;
       _adim.text = (s.data()?['ad'] as String?) ?? '';
@@ -130,6 +135,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                             renk: ButonRenk.ikincil,
                             onTap: () async {
                               Navigator.of(context).popUntil((r) => r.isFirst);
+                              await Hareketler.oturumKapat();
                               await FirebaseAuth.instance.signOut();
                             },
                           ),
@@ -143,6 +149,61 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                           : 'Uygulama sürümü: geliştirme',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Renk.soluk, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ---------------- Bildirimler
+              Panel(
+                baslik: 'Bildirimler',
+                padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8, bottom: 4),
+                      child: Text(
+                        'Başka kullanıcılar aşağıdaki işlemleri yaptığında bu telefona bildirim gelir. Kendi girdikleriniz için bildirim gelmez.',
+                        style: TextStyle(color: Renk.soluk, fontSize: 13.5),
+                      ),
+                    ),
+                    if (_bildirim == null)
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else
+                      for (final t in Hareketler.turler)
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(Hareketler.turAdlari[t]!,
+                              style: const TextStyle(fontSize: 15, color: Renk.yazi)),
+                          value: _bildirim![t] ?? false,
+                          onChanged: (v) {
+                            setState(() => _bildirim![t] = v);
+                            Hareketler.tercihKaydet(t, v);
+                            if (v) Bildirim.izinIste();
+                          },
+                        ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.notifications_active_outlined),
+                        label: const Text('Deneme bildirimi gönder'),
+                        onPressed: () async {
+                          await Bildirim.izinIste();
+                          await Bildirim.goster(1, 'Bildirimler çalışıyor',
+                              'Başkaları sipariş, teslim ya da tahsilat girdiğinde böyle haber verilecek.');
+                        },
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8, bottom: 6),
+                      child: Text(
+                        'Uygulama açıkken hemen, kapalıyken yaklaşık 15 dakikada bir kontrol edilir. Telefonun pil tasarrufu bu süreyi uzatabilir.',
+                        style: TextStyle(color: Renk.soluk, fontSize: 12.5),
+                      ),
                     ),
                   ],
                 ),

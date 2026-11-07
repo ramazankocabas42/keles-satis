@@ -366,6 +366,8 @@ Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
                     'fiyat': p,
                     'fiyatlayan': d.uid,
                     'fiyatTarih': Veri.simdi,
+                  }, islem: {
+                    'tur': 'fiyat'
                   }));
           if (!ctx.mounted) return;
           if (ok) {
@@ -438,6 +440,10 @@ Future<void> teslimEt(BuildContext context, Durum d, Siparis s) {
                         Tahsilat(tutar: t, yontem: yontem, tarih: simdi, by: d.uid)
                             .toMap(),
                     ],
+                  }, islem: {
+                    'tur': 'teslim',
+                    'tutar': t,
+                    'yontem': yontem,
                   }));
           if (!ctx.mounted) return;
           if (ok) {
@@ -536,6 +542,10 @@ Future<void> tahsilEt(BuildContext context, Durum d, Siparis s) {
                               by: d.uid)
                           .toMap(),
                     ],
+                  }, islem: {
+                    'tur': 'tahsilat',
+                    'tutar': t,
+                    'yontem': yontem,
                   }));
           if (!ctx.mounted) return;
           if (ok) {

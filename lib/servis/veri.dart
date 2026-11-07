@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../modeller.dart';
+import 'bildirim.dart';
 
 /// Firestore yolları ve yazma işlemleri.
 ///
@@ -85,14 +87,35 @@ class Veri {
       final f = await tx.get(fRef);
       final sayac = ((f.data()?['sayac'] as num?) ?? 0).toInt() + 1;
       tx.update(fRef, {'sayac': sayac});
-      tx.set(sRef, {...veri, 'no': sayac});
+      tx.set(sRef, {
+        ...veri,
+        'no': sayac,
+        'sonIslem': {
+          'tur': 'siparis',
+          'by': FirebaseAuth.instance.currentUser?.uid ?? '',
+          'tarih': veri['guncelleme'] ?? simdi,
+        },
+      });
       return sayac;
     });
   }
 
+  /// [islem]: bildirimler için ne yapıldığı, örn. {'tur': 'tahsilat', 'tutar': 500}
   static Future<void> siparisGuncelle(
-          String fid, String id, Map<String, dynamic> veri) =>
-      siparisler(fid).doc(id).update({...veri, 'guncelleme': simdi});
+      String fid, String id, Map<String, dynamic> veri,
+      {Map<String, dynamic>? islem}) {
+    final t = simdi;
+    return siparisler(fid).doc(id).update({
+      ...veri,
+      'guncelleme': t,
+      'sonIslem': {
+        'tur': 'duzeltme',
+        ...?islem,
+        'by': FirebaseAuth.instance.currentUser?.uid ?? '',
+        'tarih': t,
+      },
+    });
+  }
 
   static Future<void> siparisSil(String fid, String id) =>
       siparisler(fid).doc(id).delete();
@@ -132,6 +155,9 @@ class Durum extends ChangeNotifier {
       siparisHata = null;
       notifyListeners();
       _isimleriGetir();
+      if (!s.metadata.isFromCache) {
+        Hareketler.isle(fid, uid, siparisler, isimBul: _isimBekle);
+      }
     }, onError: (Object e) {
       siparisHata = e;
       yuklendi = true;
@@ -196,6 +222,17 @@ class Durum extends ChangeNotifier {
       }
     }));
     notifyListeners();
+  }
+
+  Future<String> _isimBekle(String id) async {
+    final v = _isimler[id];
+    if (v != null) return v;
+    try {
+      final d = await Veri.kullanicilar.doc(id).get();
+      final ad = (d.data()?['ad'] as String?)?.trim();
+      if (ad != null && ad.isNotEmpty) return _isimler[id] = ad;
+    } catch (_) {}
+    return 'Bir kullanıcı';
   }
 
   /// Ad değişince önbelleği tazeler.

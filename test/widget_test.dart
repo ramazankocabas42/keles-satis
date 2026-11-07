@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keles_satis/ekranlar/formlar.dart';
 import 'package:keles_satis/modeller.dart';
+import 'package:keles_satis/servis/bildirim.dart';
 
 Siparis _s({double? fiyat, bool teslim = false, List<double> odemeler = const []}) =>
     Siparis(
@@ -103,5 +104,31 @@ void main() {
     h.toplamDegisti();
     expect(h.fiyat.text, '');
     expect(h.bos, isTrue);
+  });
+
+  test('Son işlem okunur ve bildirim metni oluşur', () {
+    final s = Siparis.fromMap('x', {
+      'no': 7,
+      'musteri': 'Ahmet',
+      'urun': 'Çekirdek',
+      'miktar': 250,
+      'birim': 'kg',
+      'olusturan': 'a',
+      'olusturma': 1,
+      'fiyat': 10,
+      'teslim': true,
+      'tahsilatlar': [
+        {'tutar': 1000, 'yontem': 'Nakit', 'tarih': 2, 'by': 'b'}
+      ],
+      'sonIslem': {'tur': 'tahsilat', 'by': 'b', 'tarih': 5, 'tutar': 1000, 'yontem': 'Nakit'},
+    });
+    expect(s.sonIslemTur, 'tahsilat');
+    expect(s.sonIslemBy, 'b');
+    expect(s.sonIslemTarih, 5);
+    final (baslik, metin) = Hareketler.metinOlustur(s, 'Mehmet');
+    expect(baslik, contains('Tahsilat #7'));
+    expect(metin, contains('Mehmet'));
+    expect(metin, contains('Nakit'));
+    expect(metin, contains('Kalan'));
   });
 }

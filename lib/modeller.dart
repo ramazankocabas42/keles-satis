@@ -102,6 +102,11 @@ class Siparis {
     this.teslimTarih = 0,
     this.teslimNot = '',
     this.tahsilatlar = const [],
+    this.sonIslemTur = '',
+    this.sonIslemBy = '',
+    this.sonIslemTarih = 0,
+    this.sonIslemTutar = 0,
+    this.sonIslemYontem = '',
   });
 
   final String id;
@@ -122,6 +127,14 @@ class Siparis {
   final int teslimTarih;
   final String teslimNot;
   final List<Tahsilat> tahsilatlar;
+
+  /// Siparişte en son yapılan işlem (bildirimler için):
+  /// siparis | fiyat | teslim | tahsilat | duzeltme
+  final String sonIslemTur;
+  final String sonIslemBy;
+  final int sonIslemTarih;
+  final double sonIslemTutar;
+  final String sonIslemYontem;
 
   double get toplam => fiyat == null ? 0 : miktar * fiyat!;
   double get odenen => tahsilatlar.fold(0.0, (a, t) => a + t.tutar);
@@ -164,6 +177,11 @@ class Siparis {
                 .map(Tahsilat.fromMap)
                 .toList()
             : const [],
+        sonIslemTur: _s((m['sonIslem'] as Map?)?['tur']),
+        sonIslemBy: _s((m['sonIslem'] as Map?)?['by']),
+        sonIslemTarih: _i((m['sonIslem'] as Map?)?['tarih']),
+        sonIslemTutar: _d((m['sonIslem'] as Map?)?['tutar']),
+        sonIslemYontem: _s((m['sonIslem'] as Map?)?['yontem']),
       );
 }
 

@@ -1,7 +1,7 @@
 """`flutter create` ile oluşan Android dosyalarını uygulamaya göre ayarlar.
 
 - Uygulama adı "Keleş Satış"
-- İnternet ve uygulama içi güncelleme izinleri (ota_update)
+- İnternet, bildirim ve uygulama içi güncelleme izinleri
 - minSdk 24, Java 17
 - Sabit imza: KELES_KEYSTORE_PASSWORD tanımlıysa ci/keles-satis.p12 ile
   imzalanır; böylece yeni sürüm eskisinin üzerine kurulabilir.
@@ -34,6 +34,7 @@ m = re.sub(r'android:label="[^"]*"', 'android:label="Keleş Satış"', m, count=
 izinler = [
     "android.permission.INTERNET",
     "android.permission.REQUEST_INSTALL_PACKAGES",
+    "android.permission.POST_NOTIFICATIONS",
 ]
 eklenecek = "".join(
     f'    <uses-permission android:name="{i}"/>\n' for i in izinler if i not in m
