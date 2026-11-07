@@ -7,6 +7,7 @@ import '../servis/guncelleme.dart';
 import '../servis/veri.dart';
 import '../tema.dart';
 import 'aracilar.dart';
+import 'arama.dart';
 import 'ayarlar.dart';
 import 'formlar.dart';
 import 'listeler.dart';
@@ -130,6 +131,11 @@ class _AnaKabukState extends State<AnaKabuk> {
               ],
             ),
             actions: [
+              IconButton(
+                tooltip: 'Bul',
+                icon: const Icon(Icons.search),
+                onPressed: () => _git(AramaEkrani(durum: d)),
+              ),
               IconButton(
                 tooltip: 'Bekleyen işler',
                 icon: Badge(

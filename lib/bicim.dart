@@ -38,3 +38,16 @@ String tarihSaat(int ms) => ms <= 0
     ? '-'
     : DateFormat('dd.MM.yyyy HH:mm', 'tr_TR')
         .format(DateTime.fromMillisecondsSinceEpoch(ms));
+
+/// Arama için sadeleştirilmiş metin: küçük harf, Türkçe harfler sade.
+/// "Ilıcalı Şükrü" → "ilicali sukru"
+String araMetni(String s) {
+  const harita = {
+    'ı': 'i', 'ş': 's', 'ğ': 'g', 'ü': 'u', 'ö': 'o', 'ç': 'c',
+    'â': 'a', 'î': 'i', 'û': 'u',
+  };
+
+  var k = s.replaceAll('I', 'ı').replaceAll('İ', 'i').toLowerCase();
+  harita.forEach((a, b) => k = k.replaceAll(a, b));
+  return k.replaceAll('\u0307', '').trim();
+}

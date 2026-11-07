@@ -660,6 +660,28 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFB),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Renk.cizgi)),
+              child: Row(
+                children: [
+                  const Icon(Icons.person_outline, size: 19, color: Renk.soluk),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Müşteri: ${s.musteri}',
+                        style: const TextStyle(
+                            color: Renk.yazi, fontWeight: FontWeight.w600)),
+                  ),
+                  TextButton(
+                      onPressed: () => musteriDuzelt(ctx, d, siparis: s),
+                      child: const Text('Düzelt')),
+                ],
+              ),
+            ),
+            Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
               decoration: BoxDecoration(
@@ -848,6 +870,106 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
         );
       },
     ),
+  );
+}
+
+/// Yanlış yazılmış müşteri adını düzeltir. [siparis] verilirse o siparişten,
+/// verilmezse (Müşteriler ekranı) [eskiAd] ile o müşterinin tüm siparişlerinde.
+Future<void> musteriDuzelt(BuildContext ctx, Durum d,
+    {Siparis? siparis, String? eskiAd}) {
+  final eski = (siparis?.musteri ?? eskiAd ?? '').trim();
+  final ayni = d.siparisler
+      .where((x) => x.musteri.trim().toLowerCase() == eski.toLowerCase())
+      .toList();
+  final digerleri = {for (final x in d.siparisler) x.musteri.trim()}
+    ..removeWhere((e) => e.isEmpty || e.toLowerCase() == eski.toLowerCase());
+  return altSayfa(
+    ctx,
+    baslik: 'Müşteri adını düzelt',
+    aciklama: siparis == null
+        ? '"$eski" adıyla girilmiş ${ayni.length} sipariş'
+        : 'Sipariş #${siparis.no} · şu an: "$eski"',
+    builder: (c) {
+      final ad = TextEditingController(text: eski);
+      final odak = FocusNode();
+      var tumu = siparis == null || ayni.length > 1;
+      var mesgul = false;
+      return StatefulBuilder(builder: (c, set) {
+        final yeni = ad.text.trim();
+        final birlesir = digerleri
+            .where((e) => e.toLowerCase() == yeni.toLowerCase())
+            .firstOrNull;
+        Future<void> kaydet() async {
+          if (yeni.isEmpty) {
+            bildir(c, 'Müşteri adını yazın.');
+            return;
+          }
+          if (yeni == eski) {
+            Navigator.pop(c);
+            return;
+          }
+          final idler = siparis != null && !tumu
+              ? [siparis.id]
+              : ayni.map((x) => x.id).toList();
+          set(() => mesgul = true);
+          final ok = await _calistir(
+              c, () => Veri.alanDegistir(d.fid, idler, 'musteri', yeni),
+              basari: idler.length == 1
+                  ? 'Müşteri adı düzeltildi'
+                  : '${idler.length} siparişte müşteri adı düzeltildi');
+          if (!c.mounted) return;
+          if (ok) {
+            Navigator.pop(c);
+          } else {
+            set(() => mesgul = false);
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OneriliAlan(
+              controller: ad,
+              focusNode: odak,
+              secenekler: digerleri,
+              etiket: 'Doğru müşteri adı',
+              buyukHarf: TextCapitalization.words,
+              onDegisti: (_) => set(() {}),
+              onSecildi: (_) => set(() {}),
+            ),
+            if (siparis != null && ayni.length > 1) ...[
+              const SizedBox(height: 6),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: tumu,
+                onChanged: (v) => set(() => tumu = v ?? false),
+                title: Text(
+                    '"$eski" adlı ${ayni.length} siparişin hepsinde düzelt',
+                    style: const TextStyle(fontSize: 14.5)),
+              ),
+            ],
+            if (birlesir != null)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: Renk.amberAcik,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Text(
+                    '"$birlesir" adında zaten bir müşteri var. Kaydederseniz bu siparişler onunla birleşir.',
+                    style: const TextStyle(color: Renk.amber, fontSize: 13.5)),
+              ),
+            const SizedBox(height: 16),
+            _butonlar(c,
+                yazi: 'Kaydet',
+                renk: ButonRenk.birincil,
+                mesgul: mesgul,
+                onTap: kaydet),
+          ],
+        );
+      });
+    },
   );
 }
 

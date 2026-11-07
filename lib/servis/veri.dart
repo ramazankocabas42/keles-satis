@@ -117,6 +117,18 @@ class Veri {
     });
   }
 
+  /// Birden çok siparişte tek bir alanı değiştirir (ör. müşteri adı düzeltme).
+  static Future<void> alanDegistir(
+      String fid, List<String> idler, String alan, Object deger) async {
+    for (var i = 0; i < idler.length; i += 400) {
+      final b = _db.batch();
+      for (final id in idler.skip(i).take(400)) {
+        b.update(siparisler(fid).doc(id), {alan: deger});
+      }
+      await b.commit();
+    }
+  }
+
   static Future<void> siparisSil(String fid, String id) =>
       siparisler(fid).doc(id).delete();
 

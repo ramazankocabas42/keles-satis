@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:keles_satis/bicim.dart';
+import 'package:keles_satis/ekranlar/arama.dart';
 import 'package:keles_satis/ekranlar/formlar.dart';
 import 'package:keles_satis/modeller.dart';
 import 'package:keles_satis/servis/bildirim.dart';
@@ -138,5 +140,23 @@ void main() {
     expect(a.araci, 'Mehmet');
     expect(a.araciAdi, 'Mehmet');
     expect(b.araciAdi, dogrudanSatis);
+  });
+
+  test('Arama Türkçe harf farklarını önemsemez, sipariş no ile bulur', () {
+    expect(araMetni('Ilıcalı Şükrü ÇİFTÇİ'), 'ilicali sukru ciftci');
+    final s = Siparis.fromMap('1', {
+      'no': 42,
+      'musteri': 'Şükrü Ilıcalı',
+      'urun': 'Çekirdek',
+      'miktar': 10,
+      'araci': 'Mehmet Öz',
+    });
+    expect(aramadaEslesir(s, 'sukru'), isTrue);
+    expect(aramadaEslesir(s, 'ILICALI'), isTrue);
+    expect(aramadaEslesir(s, 'cekirdek'), isTrue);
+    expect(aramadaEslesir(s, 'mehmet oz'), isTrue);
+    expect(aramadaEslesir(s, '#42'), isTrue);
+    expect(aramadaEslesir(s, '42'), isTrue);
+    expect(aramadaEslesir(s, 'ahmet'), isFalse);
   });
 }

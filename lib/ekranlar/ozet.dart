@@ -4,6 +4,7 @@ import '../bicim.dart';
 import '../modeller.dart';
 import '../servis/veri.dart';
 import '../tema.dart';
+import 'formlar.dart';
 import 'listeler.dart';
 
 class _Grup {
@@ -48,6 +49,13 @@ class OzetEkrani extends StatelessWidget {
             children: [
               if (musteri && satirlar.isNotEmpty)
                 ToplamKutusu(etiket: 'Toplam alacak', deger: tl(toplamKalan)),
+              if (musteri && durum.yonetici && satirlar.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
+                  child: Text(
+                      'Yanlış yazılmış bir müşteri adını düzeltmek için yanındaki kalem simgesine dokunun; o adla girilmiş bütün siparişler düzelir.',
+                      style: TextStyle(fontSize: 12.5, color: Renk.soluk)),
+                ),
               Panel(
                 child: satirlar.isEmpty
                     ? BosDurum(
@@ -127,6 +135,16 @@ class OzetEkrani extends StatelessWidget {
                                         ),
                                       ],
                                     ),
+                                    if (musteri && durum.yonetici)
+                                      IconButton(
+                                        tooltip: 'Adını düzelt',
+                                        visualDensity: VisualDensity.compact,
+                                        icon: const Icon(Icons.edit_outlined,
+                                            size: 20, color: Renk.soluk),
+                                        onPressed: () => musteriDuzelt(
+                                            context, durum,
+                                            eskiAd: e.key),
+                                      ),
                                   ],
                                 ),
                               ),

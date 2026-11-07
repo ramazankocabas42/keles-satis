@@ -245,14 +245,13 @@ class _SiparisListesiState extends State<SiparisListesi> {
       listenable: widget.durum,
       builder: (context, _) {
         final d = widget.durum;
-        final q = _ara.text.trim().toLowerCase();
+        final q = araMetni(_ara.text);
         final l = d.siparisler
             .where(widget.filtre)
             .where((s) => _asama == null || s.asama == _asama)
             .where((s) =>
                 q.isEmpty ||
-                '${s.musteri} ${s.urun} ${s.no} ${s.not} ${s.araci}'
-                    .toLowerCase()
+                araMetni('${s.musteri} ${s.urun} ${s.no} ${s.not} ${s.araci}')
                     .contains(q))
             .toList();
         return ListView(
