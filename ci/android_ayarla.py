@@ -86,6 +86,25 @@ g = g.replace("VERSION_1_8", "VERSION_17").replace("VERSION_11", "VERSION_17")
 g = g.replace("JVM_1_8", "JVM_17").replace("JVM_11", "JVM_17")
 g = re.sub(r"jvmTarget\s*=\s*['\"](1\.8|11)['\"]", 'jvmTarget = "17"', g)
 
+# ota_update paketi core library desugaring ister.
+DESUGAR = "com.android.tools:desugar_jdk_libs:2.1.5"
+if "CoreLibraryDesugaringEnabled" not in g and "coreLibraryDesugaringEnabled" not in g:
+    satir = (
+        "isCoreLibraryDesugaringEnabled = true"
+        if kotlin_dsl
+        else "coreLibraryDesugaringEnabled true"
+    )
+    if "compileOptions {" not in g:
+        sys.exit("compileOptions bloğu bulunamadı")
+    g = g.replace("compileOptions {", "compileOptions {\n        " + satir, 1)
+if "desugar_jdk_libs" not in g:
+    bagimlilik = (
+        f'    coreLibraryDesugaring("{DESUGAR}")'
+        if kotlin_dsl
+        else f"    coreLibraryDesugaring '{DESUGAR}'"
+    )
+    g = g.rstrip() + "\n\ndependencies {\n" + bagimlilik + "\n}\n"
+
 if "keles-satis.p12" not in g:
     if kotlin_dsl:
         imza = """    signingConfigs {
