@@ -620,7 +620,9 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
         final s = d.siparisler.firstWhere((x) => x.id == s0.id,
             orElse: () => s0);
         final silinebilir = d.yonetici || s.olusturan == d.uid;
-        Widget satir(IconData ikon, String yazi, String kim, int t) => Padding(
+        Widget satir(IconData ikon, String yazi, String kim, int t,
+                {Widget? sag}) =>
+            Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,6 +639,7 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
                       ],
                     ),
                   ),
+                  if (sag != null) sag,
                 ],
               ),
             );
@@ -695,9 +698,49 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
                         'Teslim edildi${s.teslimNot.isEmpty ? '' : ' — ${s.teslimNot}'}',
                         s.teslimEden,
                         s.teslimTarih),
-                  for (final t in s.tahsilatlar)
-                    satir(Icons.payments_outlined, '${tl(t.tutar)} tahsil edildi (${t.yontem})', t.by,
-                        t.tarih),
+                  for (var i = 0; i < s.tahsilatlar.length; i++)
+                    satir(
+                      Icons.payments_outlined,
+                      '${tl(s.tahsilatlar[i].tutar)} tahsil edildi (${s.tahsilatlar[i].yontem})',
+                      s.tahsilatlar[i].by,
+                      s.tahsilatlar[i].tarih,
+                      sag: (d.yonetici || s.tahsilatlar[i].by == d.uid)
+                          ? SizedBox(
+                              height: 32,
+                              child: PopupMenuButton<String>(
+                                tooltip: 'Tahsilatı düzelt veya sil',
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.more_vert,
+                                    size: 20, color: Renk.soluk),
+                                onSelected: (v) => v == 'sil'
+                                    ? _tahsilatSil(ctx, d, s, i)
+                                    : _tahsilatDuzelt(ctx, d, s, i),
+                                itemBuilder: (_) => const [
+                                  PopupMenuItem(
+                                    value: 'duzelt',
+                                    child: ListTile(
+                                      dense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: Icon(Icons.edit_outlined),
+                                      title: Text('Tutarı düzelt'),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'sil',
+                                    child: ListTile(
+                                      dense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: Icon(Icons.delete_outline,
+                                          color: Renk.kirmizi),
+                                      title: Text('Tahsilatı sil',
+                                          style: TextStyle(color: Renk.kirmizi)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : null,
+                    ),
                 ],
               ),
             ),
@@ -771,6 +814,106 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
         );
       },
     ),
+  );
+}
+
+/// Yanlış girilen tahsilatı siler; sipariş yeniden "tahsilat bekliyor"a düşer.
+Future<void> _tahsilatSil(BuildContext ctx, Durum d, Siparis s, int i) async {
+  final t = s.tahsilatlar[i];
+  final evet = await showDialog<bool>(
+    context: ctx,
+    builder: (c) => AlertDialog(
+      title: const Text('Tahsilat silinsin mi?'),
+      content: Text(
+          '${tl(t.tutar)} (${t.yontem}) · ${tarihSaat(t.tarih)}\n\n'
+          'Bu tahsilat kaydı silinir, tutar yeniden alacak olarak görünür.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Vazgeç')),
+        FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Renk.kirmizi),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Sil')),
+      ],
+    ),
+  );
+  if (evet != true || !ctx.mounted) return;
+  final liste = [...s.tahsilatlar]..removeAt(i);
+  await _calistir(
+      ctx,
+      () => Veri.siparisGuncelle(
+          d.fid, s.id, {'tahsilatlar': liste.map((e) => e.toMap()).toList()},
+          islem: {'tur': 'duzeltme'}),
+      basari: '${tl(t.tutar)} tutarındaki tahsilat silindi');
+}
+
+/// Tahsilatın tutarını ya da ödeme yöntemini düzeltir.
+Future<void> _tahsilatDuzelt(BuildContext ctx, Durum d, Siparis s, int i) {
+  final eski = s.tahsilatlar[i];
+  return altSayfa(
+    ctx,
+    baslik: 'Tahsilatı düzelt · Sipariş #${s.no}',
+    aciklama: '${s.musteri} · ${tarihSaat(eski.tarih)} tarihli kayıt',
+    builder: (c) {
+      final tutar = TextEditingController(text: girdi(eski.tutar));
+      var yontem = yontemler.contains(eski.yontem) ? eski.yontem : yontemler.first;
+      var mesgul = false;
+      return StatefulBuilder(builder: (c, set) {
+        Future<void> kaydet() async {
+          final t = sayiOku(tutar.text);
+          if (t == null || t <= 0) {
+            bildir(c, 'Tutar geçersiz. Kaydı kaldırmak için "Tahsilatı sil"i kullanın.');
+            return;
+          }
+          set(() => mesgul = true);
+          final liste = [...s.tahsilatlar];
+          liste[i] = Tahsilat(tutar: t, yontem: yontem, tarih: eski.tarih, by: eski.by);
+          final ok = await _calistir(
+              c,
+              () => Veri.siparisGuncelle(d.fid, s.id,
+                  {'tahsilatlar': liste.map((e) => e.toMap()).toList()},
+                  islem: {'tur': 'duzeltme'}),
+              basari: 'Tahsilat düzeltildi: ${tl(t)}');
+          if (!c.mounted) return;
+          if (ok) {
+            Navigator.pop(c);
+          } else {
+            set(() => mesgul = false);
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ikili(
+              TextField(
+                controller: tutar,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Doğru tutar ₺'),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: yontem,
+                isExpanded: true,
+                dropdownColor: Colors.white,
+                decoration: const InputDecoration(labelText: 'Yöntem'),
+                items: [
+                  for (final y in yontemler) DropdownMenuItem(value: y, child: Text(y))
+                ],
+                onChanged: (v) => yontem = v ?? yontem,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _butonlar(c,
+                yazi: 'Kaydet',
+                renk: ButonRenk.birincil,
+                mesgul: mesgul,
+                onTap: kaydet),
+          ],
+        );
+      });
+    },
   );
 }
 
