@@ -1,0 +1,232 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+double _d(Object? v) =>
+    v is num ? v.toDouble() : double.tryParse('${v ?? ''}') ?? 0;
+double? _dn(Object? v) =>
+    v == null ? null : (v is num ? v.toDouble() : double.tryParse('$v'));
+int _i(Object? v) => v is num
+    ? v.toInt()
+    : v is Timestamp
+        ? v.millisecondsSinceEpoch
+        : 0;
+String _s(Object? v) => v == null ? '' : '$v';
+List<String> _ls(Object? v) =>
+    v is List ? v.map((e) => '$e').toList() : <String>[];
+
+const varsayilanBirimler = [
+  'kg',
+  'ton',
+  'adet',
+  'koli',
+  'kasa',
+  'çuval',
+  'litre',
+  'paket'
+];
+
+class Urun {
+  const Urun({required this.ad, required this.birim, this.fiyat, this.em = '📦'});
+
+  final String ad;
+  final String birim;
+  final double? fiyat;
+  final String em;
+
+  factory Urun.fromMap(Map m) => Urun(
+        ad: _s(m['ad']),
+        birim: _s(m['birim']),
+        fiyat: _dn(m['fiyat']),
+        em: _s(m['em']).isEmpty ? '📦' : _s(m['em']),
+      );
+
+  Map<String, dynamic> toMap() =>
+      {'ad': ad, 'birim': birim, 'fiyat': fiyat, 'em': em};
+}
+
+class Tahsilat {
+  const Tahsilat(
+      {required this.tutar,
+      required this.yontem,
+      required this.tarih,
+      required this.by});
+
+  final double tutar;
+  final String yontem;
+  final int tarih;
+  final String by;
+
+  factory Tahsilat.fromMap(Map m) => Tahsilat(
+        tutar: _d(m['tutar']),
+        yontem: _s(m['yontem']),
+        tarih: _i(m['tarih']),
+        by: _s(m['by']),
+      );
+
+  Map<String, dynamic> toMap() =>
+      {'tutar': tutar, 'yontem': yontem, 'tarih': tarih, 'by': by};
+}
+
+enum Asama { fiyat, teslim, tahsilat, tamam }
+
+class AsamaBilgi {
+  const AsamaBilgi(this.em, this.ad, this.isaret);
+  final String em;
+  final String ad;
+  final String isaret;
+}
+
+const asamaBilgi = {
+  Asama.fiyat: AsamaBilgi('🧾', 'Fiyat bekliyor', '!'),
+  Asama.teslim: AsamaBilgi('📦', 'Teslim bekliyor', '⏳'),
+  Asama.tahsilat: AsamaBilgi('🚚', 'Tahsilat bekliyor', '₺'),
+  Asama.tamam: AsamaBilgi('✅', 'Tamamlandı', '✓'),
+};
+
+class Siparis {
+  const Siparis({
+    required this.id,
+    required this.no,
+    required this.musteri,
+    required this.urun,
+    required this.miktar,
+    required this.birim,
+    this.not = '',
+    required this.olusturan,
+    required this.olusturma,
+    this.guncelleme = 0,
+    this.fiyat,
+    this.fiyatlayan = '',
+    this.fiyatTarih = 0,
+    this.teslim = false,
+    this.teslimEden = '',
+    this.teslimTarih = 0,
+    this.teslimNot = '',
+    this.tahsilatlar = const [],
+  });
+
+  final String id;
+  final int no;
+  final String musteri;
+  final String urun;
+  final double miktar;
+  final String birim;
+  final String not;
+  final String olusturan;
+  final int olusturma;
+  final int guncelleme;
+  final double? fiyat;
+  final String fiyatlayan;
+  final int fiyatTarih;
+  final bool teslim;
+  final String teslimEden;
+  final int teslimTarih;
+  final String teslimNot;
+  final List<Tahsilat> tahsilatlar;
+
+  double get toplam => fiyat == null ? 0 : miktar * fiyat!;
+  double get odenen => tahsilatlar.fold(0.0, (a, t) => a + t.tutar);
+  double get kalan {
+    final k = ((toplam - odenen) * 100).round() / 100;
+    return k > 0 ? k : 0;
+  }
+
+  Asama get asama => fiyat == null
+      ? Asama.fiyat
+      : !teslim
+          ? Asama.teslim
+          : kalan > 0
+              ? Asama.tahsilat
+              : Asama.tamam;
+
+  int get sonIslem => guncelleme > 0 ? guncelleme : olusturma;
+
+  factory Siparis.fromMap(String id, Map<String, dynamic> m) => Siparis(
+        id: id,
+        no: _i(m['no']),
+        musteri: _s(m['musteri']),
+        urun: _s(m['urun']),
+        miktar: _d(m['miktar']),
+        birim: _s(m['birim']),
+        not: _s(m['not']),
+        olusturan: _s(m['olusturan']),
+        olusturma: _i(m['olusturma']),
+        guncelleme: _i(m['guncelleme']),
+        fiyat: _dn(m['fiyat']),
+        fiyatlayan: _s(m['fiyatlayan']),
+        fiyatTarih: _i(m['fiyatTarih']),
+        teslim: m['teslim'] == true,
+        teslimEden: _s(m['teslimEden']),
+        teslimTarih: _i(m['teslimTarih']),
+        teslimNot: _s(m['teslimNot']),
+        tahsilatlar: (m['tahsilatlar'] is List)
+            ? (m['tahsilatlar'] as List)
+                .whereType<Map>()
+                .map(Tahsilat.fromMap)
+                .toList()
+            : const [],
+      );
+}
+
+class Firma {
+  const Firma({
+    required this.id,
+    required this.ad,
+    required this.altyazi,
+    required this.sahip,
+    required this.uyeler,
+    required this.yoneticiler,
+    required this.birimler,
+    required this.urunler,
+    required this.kod,
+    required this.sayac,
+  });
+
+  final String id;
+  final String ad;
+  final String altyazi;
+  final String sahip;
+  final List<String> uyeler;
+  final List<String> yoneticiler;
+  final List<String> birimler;
+  final List<Urun> urunler;
+  final String kod;
+  final int sayac;
+
+  bool yonetici(String uid) => yoneticiler.contains(uid);
+  List<String> get birimListesi =>
+      birimler.isEmpty ? varsayilanBirimler : birimler;
+
+  Urun? urunBul(String ad) {
+    final a = ad.trim().toLowerCase();
+    for (final u in urunler) {
+      if (u.ad.trim().toLowerCase() == a) return u;
+    }
+    return null;
+  }
+
+  factory Firma.fromMap(String id, Map<String, dynamic> m) => Firma(
+        id: id,
+        ad: _s(m['ad']),
+        altyazi: _s(m['altyazi']),
+        sahip: _s(m['sahip']),
+        uyeler: _ls(m['uyeler']),
+        yoneticiler: _ls(m['yoneticiler']),
+        birimler: _ls(m['birimler']),
+        urunler: (m['urunler'] is List)
+            ? (m['urunler'] as List).whereType<Map>().map(Urun.fromMap).toList()
+            : const [],
+        kod: _s(m['kod']),
+        sayac: _i(m['sayac']),
+      );
+}
+
+/// "1.234,5" / "1234.5" / "1 234" gibi yazımları sayıya çevirir.
+double? sayiOku(String? v) {
+  if (v == null) return null;
+  var s = v.trim().replaceAll(' ', '').replaceAll('₺', '');
+  if (s.isEmpty) return null;
+  if (s.contains(',')) {
+    s = s.replaceAll('.', '').replaceAll(',', '.');
+  }
+  return double.tryParse(s);
+}
