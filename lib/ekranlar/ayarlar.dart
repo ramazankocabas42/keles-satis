@@ -85,13 +85,13 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3A2A10),
+                    color: Renk.amberAcik,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFA87A20)),
+                    border: Border.all(color: const Color(0xFFFCD34D)),
                   ),
                   child: const Text(
                       'Firma ayarlarını yalnızca yöneticiler değiştirebilir.',
-                      style: TextStyle(color: Color(0xFFFFD98A))),
+                      style: TextStyle(color: Renk.amber)),
                 ),
 
               // ---------------- Hesabım
@@ -110,9 +110,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                     Row(
                       children: [
                         Expanded(
-                          child: OyunButonu(
+                          child: Buton(
                             yazi: 'Adı Kaydet',
-                            renk: ButonRenk.sari,
+                            renk: ButonRenk.birincil,
                             onTap: () {
                               final a = _adim.text.trim();
                               if (a.length < 2) return;
@@ -125,9 +125,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: OyunButonu(
+                          child: Buton(
                             yazi: 'Çıkış Yap',
-                            renk: ButonRenk.gri,
+                            renk: ButonRenk.ikincil,
                             onTap: () async {
                               Navigator.of(context).popUntil((r) => r.isFirst);
                               await FirebaseAuth.instance.signOut();
@@ -171,9 +171,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                     ),
                     if (yon) ...[
                       const SizedBox(height: 4),
-                      OyunButonu(
+                      Buton(
                         yazi: 'Kaydet',
-                        renk: ButonRenk.sari,
+                        renk: ButonRenk.birincil,
                         onTap: () => _calistir(
                             () => Veri.firmaGuncelle(d.fid, {
                                   'ad': _firmaAd.text.trim().isEmpty
@@ -196,29 +196,27 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                   children: [
                     if (f.urunler.isEmpty)
                       const BosDurum(
-                          em: '🧺',
+                          ikon: Icons.inventory_2_outlined,
                           yazi:
                               'Henüz hazır ürün yok. Ekleyince sipariş girerken tek dokunuşla seçilir.'),
                     for (var i = 0; i < f.urunler.length; i++)
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: const BoxDecoration(
-                            border: Border(bottom: BorderSide(color: Color(0xFF2E3C66)))),
+                            border: Border(bottom: BorderSide(color: Renk.cizgi))),
                         child: Row(
                           children: [
-                            SizedBox(
-                                width: 44,
-                                child: Text(f.urunler[i].em,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 28))),
-                            const SizedBox(width: 6),
+                            const Icon(Icons.inventory_2_outlined, color: Renk.ana),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(f.urunler[i].ad,
                                       style: const TextStyle(
-                                          fontSize: 16, fontWeight: FontWeight.w700)),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Renk.yazi)),
                                   Text(
                                     f.urunler[i].fiyat == null
                                         ? '${f.urunler[i].birim} · fiyat yok'
@@ -233,7 +231,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                                   icon: const Icon(Icons.edit),
                                   onPressed: () => urunDuzenle(context, d, i)),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Color(0xFFFF8A8A)),
+                                icon: const Icon(Icons.delete_outline, color: Renk.kirmizi),
                                 onPressed: () async {
                                   final u = f.urunler[i];
                                   if (!await _onay('${u.ad} silinsin mi?',
@@ -253,9 +251,10 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                       ),
                     if (yon) ...[
                       const SizedBox(height: 12),
-                      OyunButonu(
-                          yazi: '＋ Ürün Ekle',
-                          renk: ButonRenk.yesil,
+                      Buton(
+                          yazi: 'Ürün Ekle',
+                          ikon: Icons.add,
+                          renk: ButonRenk.birincil,
                           onTap: () => urunDuzenle(context, d, -1)),
                     ],
                   ],
@@ -275,7 +274,6 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                         for (final b in f.birimListesi)
                           Chip(
                             label: Text(b),
-                            backgroundColor: const Color(0xFF2C3A62),
                             onDeleted: !yon || f.birimListesi.length <= 1
                                 ? null
                                 : () => _calistir(
@@ -301,9 +299,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                           const SizedBox(width: 10),
                           SizedBox(
                             width: 96,
-                            child: OyunButonu(
+                            child: Buton(
                               yazi: 'Ekle',
-                              renk: ButonRenk.mavi,
+                              renk: ButonRenk.birincil,
                               yukseklik: 50,
                               onTap: () {
                                 final b = _birim.text.trim();
@@ -344,16 +342,16 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: Renk.girdi,
+                                color: Renk.anaAcik,
                                 borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: Renk.altin2, width: 2),
+                                border: Border.all(color: Renk.ana),
                               ),
                               child: SelectableText(f.kod,
                                   style: const TextStyle(
                                       fontSize: 24,
                                       letterSpacing: 4,
                                       fontWeight: FontWeight.w800,
-                                      color: Renk.altin)),
+                                      color: Renk.anaKoyu)),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -392,10 +390,17 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: const BoxDecoration(
-                            border: Border(bottom: BorderSide(color: Color(0xFF2E3C66)))),
+                            border: Border(bottom: BorderSide(color: Renk.cizgi))),
                         child: Row(
                           children: [
-                            const Text('👤', style: TextStyle(fontSize: 24)),
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Renk.anaAcik,
+                              child: Text(
+                                  d.isim(u).isEmpty ? '?' : d.isim(u).characters.first.toUpperCase(),
+                                  style: const TextStyle(
+                                      color: Renk.anaKoyu, fontWeight: FontWeight.w600)),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
@@ -403,7 +408,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                                 children: [
                                   Text(d.isim(u) + (u == d.uid ? ' (siz)' : ''),
                                       style: const TextStyle(
-                                          fontSize: 15.5, fontWeight: FontWeight.w600)),
+                                          fontSize: 15, fontWeight: FontWeight.w600, color: Renk.yazi)),
                                   Text(
                                     u == f.sahip
                                         ? 'Firma sahibi'
@@ -417,7 +422,7 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                             ),
                             if (yon && u != f.sahip && u != d.uid)
                               PopupMenuButton<String>(
-                                color: Renk.kart2,
+                                color: Colors.white,
                                 onSelected: (v) async {
                                   if (v == 'yon') {
                                     await _calistir(

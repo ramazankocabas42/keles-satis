@@ -51,7 +51,8 @@ class OzetEkrani extends StatelessWidget {
               Panel(
                 child: satirlar.isEmpty
                     ? BosDurum(
-                        em: musteri ? '👥' : '🌾', yazi: 'Henüz kayıt yok.')
+                        ikon: musteri ? Icons.people_outline : Icons.inventory_2_outlined,
+                        yazi: 'Henüz kayıt yok.')
                     : Column(
                         children: [
                           for (final e in satirlar)
@@ -66,7 +67,7 @@ class OzetEkrani extends StatelessWidget {
                                         (musteri ? s.musteri : s.urun).trim() ==
                                         e.key,
                                     asamaSecimi: true,
-                                    bosEm: '📋',
+                                    bosIkon: Icons.list_alt,
                                     bosYazi: 'Kayıt yok.',
                                   ),
                                 ),
@@ -75,14 +76,22 @@ class OzetEkrani extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                                 decoration: const BoxDecoration(
                                     border: Border(
-                                        bottom: BorderSide(color: Color(0xFF2E3C66)))),
+                                        bottom: BorderSide(color: Renk.cizgi))),
                                 child: Row(
                                   children: [
-                                    Text(
-                                        musteri
-                                            ? '👤'
-                                            : (durum.firma?.urunBul(e.key)?.em ?? '📦'),
-                                        style: const TextStyle(fontSize: 26)),
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                          color: Renk.anaAcik,
+                                          borderRadius: BorderRadius.circular(9)),
+                                      child: Icon(
+                                          musteri
+                                              ? Icons.person_outline
+                                              : Icons.inventory_2_outlined,
+                                          color: Renk.anaKoyu,
+                                          size: 20),
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
@@ -113,8 +122,8 @@ class OzetEkrani extends StatelessWidget {
                                           style: TextStyle(
                                               fontSize: 13,
                                               color: e.value.kalan > 0
-                                                  ? const Color(0xFFFF8A8A)
-                                                  : const Color(0xFF8FE07A)),
+                                                  ? Renk.kirmizi
+                                                  : Renk.yesil),
                                         ),
                                       ],
                                     ),

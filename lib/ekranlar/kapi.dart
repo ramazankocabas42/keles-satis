@@ -30,7 +30,7 @@ class _Yukleniyor extends StatelessWidget {
   const _Yukleniyor();
   @override
   Widget build(BuildContext context) => const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Renk.altin)),
+        body: Center(child: CircularProgressIndicator()),
       );
 }
 
@@ -99,17 +99,16 @@ class _FirmaKapiState extends State<_FirmaKapi> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text('🚪', textAlign: TextAlign.center, style: TextStyle(fontSize: 56)),
+                        const Icon(Icons.lock_outline, size: 48, color: Renk.soluk),
                         const SizedBox(height: 8),
                         const Text(
                           'Bu firmaya erişiminiz yok. Yönetici sizi çıkarmış ya da firma silinmiş olabilir.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
+                          style: TextStyle(fontSize: 15, color: Renk.yazi),
                         ),
                         const SizedBox(height: 18),
-                        OyunButonu(
+                        Buton(
                           yazi: 'Başka firmaya katıl / yeni kur',
-                          renk: ButonRenk.mavi,
                           onTap: () => Veri.firmadanAyril(widget.uid),
                         ),
                         const SizedBox(height: 8),
@@ -144,7 +143,7 @@ class _HataEkrani extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('⚠️', style: TextStyle(fontSize: 52)),
+                  const Icon(Icons.error_outline, size: 48, color: Renk.kirmizi),
                   const SizedBox(height: 10),
                   Text(yazi, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
@@ -219,6 +218,7 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
         title: const Text('Hoş geldiniz'),
         actions: [
           TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
               onPressed: () => FirebaseAuth.instance.signOut(),
               child: const Text('Çıkış')),
         ],
@@ -278,9 +278,8 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
                 ],
               ),
             ),
-            OyunButonu(
+            Buton(
               yazi: _kur ? 'Firmayı Kur' : 'Firmaya Katıl',
-              renk: ButonRenk.yesil,
               yukseklik: 54,
               mesgul: _mesgul,
               onTap: _devam,

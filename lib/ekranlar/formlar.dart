@@ -35,7 +35,7 @@ Widget _birimSecici(
       initialValue: birimler.contains(secili) ? secili : birimler.first,
       isExpanded: true,
       decoration: const InputDecoration(labelText: 'Birim'),
-      dropdownColor: Renk.kart2,
+      dropdownColor: Colors.white,
       items: [
         for (final b in birimler) DropdownMenuItem(value: b, child: Text(b)),
       ],
@@ -50,14 +50,14 @@ Widget _butonlar(BuildContext context,
     Row(
       children: [
         Expanded(
-            child: OyunButonu(
+            child: Buton(
                 yazi: 'Vazgeç',
-                renk: ButonRenk.gri,
+                renk: ButonRenk.ikincil,
                 onTap: mesgul ? null : () => Navigator.pop(context))),
         const SizedBox(width: 10),
         Expanded(
             flex: 2,
-            child: OyunButonu(
+            child: Buton(
                 yazi: yazi, renk: renk, mesgul: mesgul, onTap: onTap)),
       ],
     );
@@ -75,7 +75,7 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
 
   return altSayfa(
     context,
-    baslik: '🛒 Yeni Sipariş',
+    baslik: 'Yeni sipariş',
     aciklama: 'Önce siparişi girin; fiyat bir sonraki adımda yazılır.',
     builder: (ctx) {
       final musteri = TextEditingController();
@@ -169,18 +169,23 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
             if (f.urunler.isNotEmpty) ...[
               const Text('Ürün seçin', style: TextStyle(color: Renk.soluk)),
               const SizedBox(height: 6),
-              GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   for (final u in f.urunler)
-                    _UrunKaresi(
-                        urun: u,
-                        secili: identical(secili, u),
-                        onTap: () => urunSec(u)),
+                    ChoiceChip(
+                      label: Text(u.ad),
+                      selected: identical(secili, u),
+                      labelStyle: TextStyle(
+                          color: identical(secili, u) ? Renk.anaKoyu : Renk.yazi,
+                          fontWeight: identical(secili, u)
+                              ? FontWeight.w600
+                              : FontWeight.w500),
+                      side: BorderSide(
+                          color: identical(secili, u) ? Renk.ana : Renk.cizgi),
+                      onSelected: (_) => urunSec(u),
+                    ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -227,7 +232,7 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
             const SizedBox(height: 16),
             _butonlar(ctx,
                 yazi: 'Kaydet',
-                renk: ButonRenk.yesil,
+                renk: ButonRenk.birincil,
                 mesgul: mesgul,
                 onTap: kaydet),
           ],
@@ -301,7 +306,7 @@ List<Widget> _fiyatAlanlari(
   final hazir = m != null && m > 0 && p != null && p >= 0;
   final altin = OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
-    borderSide: const BorderSide(color: Renk.altin2, width: 2),
+    borderSide: const BorderSide(color: Renk.ana, width: 1.5),
   );
   return [
     TextField(
@@ -318,7 +323,7 @@ List<Widget> _fiyatAlanlari(
       onChanged: (_) => set(h.toplamDegisti),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: const TextStyle(
-          fontSize: 20, fontWeight: FontWeight.w800, color: Renk.altin),
+          fontSize: 19, fontWeight: FontWeight.w700, color: Renk.anaKoyu),
       decoration: InputDecoration(
         labelText: 'Toplam tutar (₺)',
         hintText: 'Toplamı yazarsanız birim fiyat hesaplanır',
@@ -332,50 +337,12 @@ List<Widget> _fiyatAlanlari(
   ];
 }
 
-class _UrunKaresi extends StatelessWidget {
-  const _UrunKaresi(
-      {required this.urun, required this.secili, required this.onTap});
-  final Urun urun;
-  final bool secili;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: secili ? const Color(0xFF4A2236) : const Color(0xFF2C3A62),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-                color: secili ? Renk.kirmizi : const Color(0xFF56688F), width: 3),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(urun.em, style: const TextStyle(fontSize: 28)),
-                Text(urun.ad,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11.5)),
-              ],
-            ),
-          ),
-        ),
-        ),
-      );
-}
-
 // ---------------------------------------------------------------- Fiyat
 
 Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
   return altSayfa(
     context,
-    baslik: '🏷️ Fiyat Gir · #${s.no}',
+    baslik: 'Fiyat gir · Sipariş #${s.no}',
     aciklama: '${s.musteri} — ${s.urun}',
     builder: (ctx) {
       final varsayilan = s.fiyat ?? d.firma?.urunBul(s.urun)?.fiyat;
@@ -425,7 +392,7 @@ Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
             ..._fiyatAlanlari(hesap, birim, set, odak: s.fiyat == null),
             _butonlar(ctx,
                 yazi: 'Fiyatı Kaydet',
-                renk: ButonRenk.sari,
+                renk: ButonRenk.birincil,
                 mesgul: mesgul,
                 onTap: kaydet),
           ],
@@ -440,7 +407,7 @@ Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
 Future<void> teslimEt(BuildContext context, Durum d, Siparis s) {
   return altSayfa(
     context,
-    baslik: '🚚 Teslim · #${s.no}',
+    baslik: 'Teslim · Sipariş #${s.no}',
     aciklama:
         '${s.musteri} — ${sayi(s.miktar)} ${s.birim} ${s.urun} · ${tl(s.toplam)}',
     builder: (ctx) {
@@ -502,7 +469,7 @@ Future<void> teslimEt(BuildContext context, Durum d, Siparis s) {
               DropdownButtonFormField<String>(
                 initialValue: yontem,
                 isExpanded: true,
-                dropdownColor: Renk.kart2,
+                dropdownColor: Colors.white,
                 decoration: const InputDecoration(labelText: 'Yöntem'),
                 items: [
                   for (final y in yontemler) DropdownMenuItem(value: y, child: Text(y))
@@ -515,14 +482,13 @@ Future<void> teslimEt(BuildContext context, Durum d, Siparis s) {
               alignment: Alignment.centerLeft,
               child: ActionChip(
                 label: Text('Tamamı alındı (${tl(s.kalan)})'),
-                backgroundColor: const Color(0xFF2C3A62),
                 onPressed: () => set(() => tutar.text = girdi(s.kalan)),
               ),
             ),
             const SizedBox(height: 14),
             _butonlar(ctx,
                 yazi: '✓ Teslim Edildi',
-                renk: ButonRenk.yesil,
+                renk: ButonRenk.birincil,
                 mesgul: mesgul,
                 onTap: kaydet),
           ],
@@ -538,7 +504,7 @@ Future<void> tahsilEt(BuildContext context, Durum d, Siparis s) {
   final kalan = s.kalan;
   return altSayfa(
     context,
-    baslik: '💰 Tahsilat · #${s.no}',
+    baslik: 'Tahsilat · Sipariş #${s.no}',
     aciklama: '${s.musteri} — Toplam ${tl(s.toplam)} · Alınan ${tl(s.odenen)}',
     builder: (ctx) {
       final tutar = TextEditingController(text: girdi(kalan));
@@ -577,7 +543,7 @@ Future<void> tahsilEt(BuildContext context, Durum d, Siparis s) {
             bildir(
                 context,
                 t >= kalan
-                    ? '#${s.no} tamamen tahsil edildi 🎉'
+                    ? '#${s.no} tamamen tahsil edildi'
                     : '${tl(t)} tahsil edildi');
           } else {
             set(() => mesgul = false);
@@ -597,7 +563,7 @@ Future<void> tahsilEt(BuildContext context, Durum d, Siparis s) {
               DropdownButtonFormField<String>(
                 initialValue: yontem,
                 isExpanded: true,
-                dropdownColor: Renk.kart2,
+                dropdownColor: Colors.white,
                 decoration: const InputDecoration(labelText: 'Yöntem'),
                 items: [
                   for (final y in yontemler) DropdownMenuItem(value: y, child: Text(y))
@@ -611,11 +577,9 @@ Future<void> tahsilEt(BuildContext context, Durum d, Siparis s) {
               children: [
                 ActionChip(
                     label: const Text('Tamamı'),
-                    backgroundColor: const Color(0xFF2C3A62),
                     onPressed: () => set(() => tutar.text = girdi(kalan))),
                 ActionChip(
                     label: const Text('Yarısı'),
-                    backgroundColor: const Color(0xFF2C3A62),
                     onPressed: () => set(() =>
                         tutar.text = girdi((kalan / 2 * 100).round() / 100))),
               ],
@@ -623,7 +587,7 @@ Future<void> tahsilEt(BuildContext context, Durum d, Siparis s) {
             const SizedBox(height: 14),
             _butonlar(ctx,
                 yazi: 'Tahsil Et',
-                renk: ButonRenk.mavi,
+                renk: ButonRenk.birincil,
                 mesgul: mesgul,
                 onTap: kaydet),
           ],
@@ -638,7 +602,7 @@ Future<void> tahsilEt(BuildContext context, Durum d, Siparis s) {
 Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
   return altSayfa(
     context,
-    baslik: '${asamaBilgi[s0.asama]!.em} Sipariş #${s0.no}',
+    baslik: 'Sipariş #${s0.no}',
     aciklama: '${s0.musteri} · ${s0.urun}',
     builder: (ctx) => ListenableBuilder(
       listenable: d,
@@ -646,18 +610,18 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
         final s = d.siparisler.firstWhere((x) => x.id == s0.id,
             orElse: () => s0);
         final silinebilir = d.yonetici || s.olusturan == d.uid;
-        Widget satir(String em, String yazi, String kim, int t) => Padding(
+        Widget satir(IconData ikon, String yazi, String kim, int t) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(em, style: const TextStyle(fontSize: 20)),
+                  Icon(ikon, size: 19, color: Renk.ana),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(yazi, style: const TextStyle(fontSize: 15)),
+                        Text(yazi, style: const TextStyle(fontSize: 14.5, color: Renk.yazi)),
                         Text('${d.isim(kim)} · ${tarihSaat(t)}',
                             style: const TextStyle(color: Renk.soluk, fontSize: 12.5)),
                       ],
@@ -674,10 +638,17 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                    color: const Color(0xFF1D2A4C),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF3E4F7E))),
-                child: Text('📝 ${s.not}'),
+                    color: const Color(0xFFF8FAFB),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Renk.cizgi)),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.notes, size: 18, color: Renk.soluk),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(s.not)),
+                  ],
+                ),
               ),
             Row(
               children: [
@@ -699,23 +670,23 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
             Container(
               padding: const EdgeInsets.only(left: 12),
               decoration: const BoxDecoration(
-                  border: Border(left: BorderSide(color: Color(0xFF3E4F7E), width: 3))),
+                  border: Border(left: BorderSide(color: Renk.cizgi, width: 2))),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  satir('🛒', 'Sipariş girildi — ${sayi(s.miktar)} ${s.birim}',
+                  satir(Icons.add_shopping_cart, 'Sipariş girildi — ${sayi(s.miktar)} ${s.birim}',
                       s.olusturan, s.olusturma),
                   if (s.fiyat != null)
-                    satir('🏷️', 'Fiyat: ${tl(s.fiyat!)} / ${s.birim} = ${tl(s.toplam)}',
+                    satir(Icons.sell_outlined, 'Fiyat: ${tl(s.fiyat!)} / ${s.birim} = ${tl(s.toplam)}',
                         s.fiyatlayan, s.fiyatTarih),
                   if (s.teslim)
                     satir(
-                        '🚚',
+                        Icons.local_shipping_outlined,
                         'Teslim edildi${s.teslimNot.isEmpty ? '' : ' — ${s.teslimNot}'}',
                         s.teslimEden,
                         s.teslimTarih),
                   for (final t in s.tahsilatlar)
-                    satir('💰', '${tl(t.tutar)} tahsil edildi (${t.yontem})', t.by,
+                    satir(Icons.payments_outlined, '${tl(t.tutar)} tahsil edildi (${t.yontem})', t.by,
                         t.tarih),
                 ],
               ),
@@ -726,22 +697,22 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
               runSpacing: 8,
               children: [
                 if (s.fiyat != null)
-                  _kucuk('🏷️ Fiyatı düzelt', ButonRenk.sari, () {
+                  _kucuk('Fiyatı düzelt', ButonRenk.ikincil, () {
                     Navigator.pop(ctx);
                     fiyatGir(context, d, s);
                   }),
                 if (s.asama == Asama.teslim)
-                  _kucuk('🚚 Teslim edildi', ButonRenk.yesil, () {
+                  _kucuk('Teslim edildi', ButonRenk.birincil, () {
                     Navigator.pop(ctx);
                     teslimEt(context, d, s);
                   }),
                 if (s.fiyat != null && s.kalan > 0)
-                  _kucuk('💰 Tahsilat gir', ButonRenk.mavi, () {
+                  _kucuk('Tahsilat gir', ButonRenk.birincil, () {
                     Navigator.pop(ctx);
                     tahsilEt(context, d, s);
                   }),
                 if (s.teslim)
-                  _kucuk('↩️ Teslimi geri al', ButonRenk.gri, () async {
+                  _kucuk('Teslimi geri al', ButonRenk.ikincil, () async {
                     final ok = await _calistir(
                         ctx,
                         () => Veri.siparisGuncelle(d.fid, s.id, {
@@ -753,7 +724,7 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
                     if (ok && ctx.mounted) Navigator.pop(ctx);
                   }),
                 if (silinebilir)
-                  _kucuk('🗑 Sil', ButonRenk.kirmizi, () async {
+                  _kucuk('Sil', ButonRenk.tehlike, () async {
                     final evet = await showDialog<bool>(
                       context: ctx,
                       builder: (c) => AlertDialog(
@@ -782,9 +753,9 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
               ],
             ),
             const SizedBox(height: 12),
-            OyunButonu(
+            Buton(
                 yazi: 'Kapat',
-                renk: ButonRenk.gri,
+                renk: ButonRenk.ikincil,
                 onTap: () => Navigator.pop(ctx)),
           ],
         );
@@ -795,27 +766,22 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
 
 Widget _kucuk(String yazi, ButonRenk r, VoidCallback onTap) => SizedBox(
     width: 160,
-    child: OyunButonu(yazi: yazi, renk: r, yukseklik: 42, onTap: onTap));
+    child: Buton(yazi: yazi, renk: r, yukseklik: 42, onTap: onTap));
 
 // ---------------------------------------------------------------- Ürün düzenle
 
-const simgeler = [
-  '🍅', '🥒', '🌶️', '🫑', '🍆', '🥔', '🧅', '🧄', '🥕', '🌽', '🥬', '🥦',
-  '🍉', '🍈', '🍓', '🍇', '🍋', '🍊', '🍎', '🍐', '🍑', '🍒', '🫘', '🌾',
-  '🌻', '🥜', '🥚', '🥛', '🧀', '🐄', '🐑', '🐔', '🍯', '🫒', '🪵', '📦',
-];
 
 Future<void> urunDuzenle(BuildContext context, Durum d, int index) {
   final f = d.firma!;
   final eski = index >= 0 ? f.urunler[index] : null;
   return altSayfa(
     context,
-    baslik: eski == null ? '＋ Yeni Ürün' : '✏️ Ürünü Düzenle',
+    baslik: eski == null ? 'Yeni ürün' : 'Ürünü düzenle',
     aciklama: 'Sipariş girerken bu ürün hazır kutucuk olarak çıkar.',
     builder: (ctx) {
       final ad = TextEditingController(text: eski?.ad ?? '');
       final fiyat = TextEditingController(text: girdi(eski?.fiyat));
-      var em = eski?.em ?? '🍅';
+      final em = eski?.em ?? '📦';
       var birim = eski?.birim ?? f.birimListesi.first;
       var mesgul = false;
       return StatefulBuilder(builder: (ctx, set) {
@@ -854,37 +820,6 @@ Future<void> urunDuzenle(BuildContext context, Durum d, int index) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Simge', style: TextStyle(color: Renk.soluk)),
-            const SizedBox(height: 6),
-            GridView.count(
-              crossAxisCount: 8,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-              children: [
-                for (final e in simgeler)
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () => set(() => em = e),
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2C3A62),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: e == em ? Renk.altin : Colors.transparent,
-                            width: 2),
-                      ),
-                      child: Center(
-                          child: Text(e, style: const TextStyle(fontSize: 20))),
-                    ),
-                  ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
             TextField(
               controller: ad,
               textCapitalization: TextCapitalization.sentences,
@@ -903,7 +838,7 @@ Future<void> urunDuzenle(BuildContext context, Durum d, int index) {
             const SizedBox(height: 16),
             _butonlar(ctx,
                 yazi: 'Kaydet',
-                renk: ButonRenk.yesil,
+                renk: ButonRenk.birincil,
                 mesgul: mesgul,
                 onTap: kaydet),
           ],

@@ -1,512 +1,214 @@
 import 'package:flutter/material.dart';
 
-/// Oyun tarzı koyu lacivert tema ve ortak parçalar.
+/// Kurumsal, açık renkli tema: turkuaz ana renk, beyaz kartlar, sade butonlar.
 class Renk {
-  static const zemin = Color(0xFF141C33);
-  static const zemin2 = Color(0xFF1B2542);
-  static const kart = Color(0xFF202C4D);
-  static const kart2 = Color(0xFF26345A);
-  static const cizgi = Color(0xFF34446F);
-  static const yazi = Color(0xFFEEF2FF);
-  static const soluk = Color(0xFF9AA6C8);
-  static const altin = Color(0xFFF5C542);
-  static const altin2 = Color(0xFFD9922B);
-  static const yesil = Color(0xFF5FBF4A);
-  static const mavi = Color(0xFF4A7FE0);
-  static const mor = Color(0xFF8B4FE6);
-  static const kirmizi = Color(0xFFEC4949);
-  static const girdi = Color(0xFF121A31);
+  static const ana = Color(0xFF0E9E9B); // turkuaz
+  static const anaKoyu = Color(0xFF0A7C7A);
+  static const anaAcik = Color(0xFFE2F4F3);
+
+  static const zemin = Color(0xFFF3F6F7);
+  static const kart = Colors.white;
+  static const cizgi = Color(0xFFE2E8EC);
+  static const yazi = Color(0xFF1E293B);
+  static const soluk = Color(0xFF64748B);
+
+  static const yesil = Color(0xFF15803D);
+  static const yesilAcik = Color(0xFFDCFCE7);
+  static const mavi = Color(0xFF1D4ED8);
+  static const maviAcik = Color(0xFFDBEAFE);
+  static const amber = Color(0xFFB45309);
+  static const amberAcik = Color(0xFFFEF3C7);
+  static const turuncu = Color(0xFFC2410C);
+  static const turuncuAcik = Color(0xFFFFEDD5);
+  static const kirmizi = Color(0xFFDC2626);
+  static const kirmiziAcik = Color(0xFFFEE2E2);
 }
 
 ThemeData temaOlustur() {
-  final base = ThemeData(
-    brightness: Brightness.dark,
+  final cs = ColorScheme.fromSeed(
+    seedColor: Renk.ana,
+    brightness: Brightness.light,
+  ).copyWith(
+    primary: Renk.ana,
+    onPrimary: Colors.white,
+    primaryContainer: Renk.anaAcik,
+    onPrimaryContainer: Renk.anaKoyu,
+    secondaryContainer: Renk.anaAcik,
+    onSecondaryContainer: Renk.anaKoyu,
+    surface: Renk.kart,
+    onSurface: Renk.yazi,
+    onSurfaceVariant: Renk.soluk,
+    outline: const Color(0xFFCBD5DC),
+    outlineVariant: Renk.cizgi,
+    error: Renk.kirmizi,
+  );
+  final kenar = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: const BorderSide(color: Color(0xFFCBD5DC)),
+  );
+  final yuvarlak =
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+  return ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Renk.altin,
-      brightness: Brightness.dark,
-      surface: Renk.zemin2,
-      primary: Renk.altin,
-    ),
+    colorScheme: cs,
     scaffoldBackgroundColor: Renk.zemin,
-  );
-  final border = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(14),
-    borderSide: const BorderSide(color: Color(0xFF3A4A78), width: 2),
-  );
-  return base.copyWith(
+    dividerColor: Renk.cizgi,
+    dividerTheme: const DividerThemeData(color: Renk.cizgi, space: 1, thickness: 1),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Renk.zemin,
-      foregroundColor: Renk.yazi,
+      backgroundColor: Renk.ana,
+      foregroundColor: Colors.white,
       elevation: 0,
+      scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
-          fontSize: 22, fontWeight: FontWeight.w700, color: Renk.yazi),
+          fontSize: 19, fontWeight: FontWeight.w600, color: Colors.white),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Renk.girdi,
+      fillColor: Colors.white,
       labelStyle: const TextStyle(color: Renk.soluk),
-      hintStyle: const TextStyle(color: Color(0xFF6F7BA0)),
-      border: border,
-      enabledBorder: border,
-      focusedBorder: border.copyWith(
-          borderSide: const BorderSide(color: Renk.altin, width: 2)),
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+      border: kenar,
+      enabledBorder: kenar,
+      focusedBorder:
+          kenar.copyWith(borderSide: const BorderSide(color: Renk.ana, width: 2)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     ),
-    snackBarTheme: const SnackBarThemeData(
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: Color(0xFF0E1428),
-      contentTextStyle: TextStyle(color: Renk.yazi, fontSize: 15),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
-          side: BorderSide(color: Renk.altin, width: 2)),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(64, 46),
+        shape: yuvarlak,
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
     ),
-    dialogTheme: const DialogThemeData(backgroundColor: Renk.kart2),
-    textTheme: base.textTheme.apply(bodyColor: Renk.yazi, displayColor: Renk.yazi),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(64, 46),
+        shape: yuvarlak,
+        foregroundColor: Renk.yazi,
+        side: const BorderSide(color: Color(0xFFCBD5DC)),
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: Renk.anaKoyu),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Renk.ana,
+      foregroundColor: Colors.white,
+      elevation: 2,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.white,
+      indicatorColor: Renk.anaAcik,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      height: 68,
+      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(
+          color: s.contains(WidgetState.selected) ? Renk.anaKoyu : Renk.soluk)),
+      labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(
+          fontSize: 12,
+          fontWeight:
+              s.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w500,
+          color: s.contains(WidgetState.selected) ? Renk.anaKoyu : Renk.soluk)),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: Colors.white,
+      selectedColor: Renk.anaAcik,
+      side: const BorderSide(color: Renk.cizgi),
+      labelStyle: const TextStyle(color: Renk.yazi, fontSize: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      showCheckmark: false,
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        selectedBackgroundColor: Renk.anaAcik,
+        selectedForegroundColor: Renk.anaKoyu,
+      ),
+    ),
+    dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
+    popupMenuTheme: const PopupMenuThemeData(color: Colors.white),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Renk.yazi,
+      contentTextStyle: const TextStyle(color: Colors.white, fontSize: 15),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: Renk.ana),
   );
 }
 
 void bildir(BuildContext context, String mesaj) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(mesaj, textAlign: TextAlign.center)));
+    ..showSnackBar(SnackBar(content: Text(mesaj)));
 }
 
-/// Altın renkli, kenarlıklı logo yazısı ve altındaki kırmızı şerit.
-class LogoBaslik extends StatelessWidget {
-  const LogoBaslik({super.key, required this.ad, required this.altyazi});
-
-  final String ad;
-  final String altyazi;
-
-  @override
-  Widget build(BuildContext context) {
-    const stil = TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.w900,
-        fontStyle: FontStyle.italic,
-        letterSpacing: .5,
-        height: 1.05);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Stack(
-            children: [
-              Text(ad,
-                  style: stil.copyWith(
-                    foreground: Paint()
-                      ..style = PaintingStyle.stroke
-                      ..strokeWidth = 4
-                      ..color = const Color(0xFF4A1D02),
-                    shadows: const [
-                      Shadow(offset: Offset(0, 3), color: Color(0xFF2A1003))
-                    ],
-                  )),
-              ShaderMask(
-                shaderCallback: (r) => const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFFFF6C9), Color(0xFFF9D34A), Color(0xFFE38A12)],
-                  stops: [0, .45, 1],
-                ).createShader(r),
-                child: Text(ad, style: stil.copyWith(color: Colors.white)),
-              ),
-            ],
-          ),
-        ),
-        if (altyazi.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 3),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFC82A2A), Color(0xFF8F1515)]),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Renk.altin, width: 2),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF4A0B0B), offset: Offset(0, 3))
-              ],
-            ),
-            child: Text(altyazi,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.4,
-                    color: Colors.white)),
-          ),
-      ],
-    );
-  }
-}
-
-class Rozet extends StatelessWidget {
-  const Rozet({super.key, required this.sayi});
-  final int sayi;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minWidth: 22),
-        height: 22,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Renk.kirmizi,
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: Renk.zemin, width: 2),
-        ),
-        child: Text('$sayi',
-            style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-      );
-}
-
-class KirmiziNokta extends StatelessWidget {
-  const KirmiziNokta({super.key});
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 18,
-        height: 18,
-        decoration: BoxDecoration(
-          color: Renk.kirmizi,
-          shape: BoxShape.circle,
-          border: Border.all(color: Renk.zemin2, width: 2),
-        ),
-      );
-}
-
-/// Üstteki sayaç hapları (simge yuvarlak, sola taşan).
-class Sayac extends StatelessWidget {
-  const Sayac({
-    super.key,
-    required this.em,
-    required this.deger,
-    required this.etiket,
-    required this.cerceve,
-    required this.simgeRenk,
-  });
-
-  final String em;
-  final String deger;
-  final String etiket;
-  final Color cerceve;
-  final List<Color> simgeRenk;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 46,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                left: 10,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFF0B1124), Color(0xFF18213F)]),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: cerceve, width: 3),
-                  ),
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(left: 30, right: 8),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(deger,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                top: 1,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                        center: const Alignment(-.3, -.4), colors: simgeRenk),
-                    boxShadow: [
-                      BoxShadow(
-                          color: simgeRenk.last.withValues(alpha: .6),
-                          offset: const Offset(0, 2))
-                    ],
-                  ),
-                  child: Text(em, style: const TextStyle(fontSize: 24)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(etiket, style: const TextStyle(fontSize: 11, color: Renk.soluk)),
-      ],
-    );
-  }
-}
-
-/// Yuvarlak köşeli koyu panel ve başlığı.
+/// Beyaz, ince kenarlıklı kart; isteğe bağlı başlık ve sağda bir bağlantı.
 class Panel extends StatelessWidget {
-  const Panel({super.key, this.baslik, required this.child, this.margin});
+  const Panel({
+    super.key,
+    this.baslik,
+    required this.child,
+    this.margin,
+    this.padding,
+    this.eylem,
+  });
 
   final String? baslik;
   final Widget child;
   final EdgeInsets? margin;
+  final EdgeInsets? padding;
+  final Widget? eylem;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: margin ?? const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      margin: margin ?? const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Renk.kart2, Renk.kart]),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF2F3F6A)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x40000000), blurRadius: 18, offset: Offset(0, 8))
-        ],
+        color: Renk.kart,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Renk.cizgi),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (baslik != null) ...[
-            Text(baslik!,
-                style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: .6,
-              child: Container(
-                height: 2,
-                decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                        colors: [Color(0xFF6C7BA8), Colors.transparent])),
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (baslik != null) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(baslik!,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Renk.yazi)),
+                  ),
+                  if (eylem != null) eylem!,
+                ],
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 12),
+            ],
+            child,
           ],
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-/// "21 Adet" yazılı büyük kare kutucuk.
-class Kutucuk extends StatelessWidget {
-  const Kutucuk({
-    super.key,
-    required this.adet,
-    required this.em,
-    required this.ad,
-    required this.alt,
-    required this.kenar,
-    this.nokta = false,
-    required this.onTap,
-  });
-
-  final int adet;
-  final String em;
-  final String ad;
-  final Color alt;
-  final Color kenar;
-  final bool nokta;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: onTap,
-            child: Ink(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [const Color(0xFF26345E), alt]),
-                borderRadius: BorderRadius.circular(20),
-                border: Border(
-                  top: BorderSide(color: Colors.white.withValues(alpha: .08), width: 2),
-                  left: BorderSide(color: Colors.white.withValues(alpha: .08), width: 2),
-                  right: BorderSide(color: Colors.white.withValues(alpha: .08), width: 2),
-                  bottom: BorderSide(color: kenar, width: 4),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('$adet Adet', style: const TextStyle(fontSize: 14)),
-                    Container(
-                        height: 1,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        color: Colors.white24),
-                    Expanded(
-                      child: FittedBox(
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Text(em,
-                              style: const TextStyle(fontSize: 48, shadows: [
-                                Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 6,
-                                    offset: Offset(0, 4))
-                              ])),
-                        ),
-                      ),
-                    ),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(ad,
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              shadows: [
-                                Shadow(color: Colors.black45, offset: Offset(0, 2))
-                              ])),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (nokta && adet > 0)
-          const Positioned(top: -6, right: -6, child: KirmiziNokta()),
-      ],
-    );
-  }
-}
-
-/// Ana sayfadaki büyük renkli geniş butonlar.
-class GenisButon extends StatelessWidget {
-  const GenisButon({
-    super.key,
-    required this.em,
-    required this.ad,
-    required this.renkler,
-    required this.kenar,
-    required this.onTap,
-    this.sol,
-    this.sag,
-    this.serit,
-  });
-
-  final String em;
-  final String ad;
-  final List<Color> renkler;
-  final Color kenar;
-  final VoidCallback onTap;
-  final String? sol;
-  final String? sag;
-  final String? serit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Ink(
-          height: 92,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: renkler),
-            borderRadius: BorderRadius.circular(18),
-            border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: .12), width: 2),
-              left: BorderSide(color: Colors.white.withValues(alpha: .12), width: 2),
-              right: BorderSide(color: Colors.white.withValues(alpha: .12), width: 2),
-              bottom: BorderSide(color: kenar, width: 4),
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              children: [
-                if (sol != null)
-                  Positioned(
-                      left: 10,
-                      top: 8,
-                      child: Text(sol!, style: const TextStyle(fontSize: 22))),
-                if (sag != null)
-                  Positioned(
-                      right: 10,
-                      bottom: 8,
-                      child: Text(sag!, style: const TextStyle(fontSize: 22))),
-                if (serit != null)
-                  Positioned(
-                    top: 10,
-                    right: -28,
-                    child: Transform.rotate(
-                      angle: .7,
-                      child: Container(
-                        color: Renk.kirmizi,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 2),
-                        child: Text(serit!,
-                            style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(em, style: const TextStyle(fontSize: 32)),
-                      Text(ad,
-                          style: const TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w700,
-                              shadows: [
-                                Shadow(color: Colors.black38, offset: Offset(0, 2))
-                              ])),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
   }
 }
 
-enum ButonRenk { yesil, mavi, sari, mor, gri, kirmizi }
+enum ButonRenk { birincil, ikincil, tehlike }
 
-/// Alt kenarı kalın, üç boyutlu görünen buton.
-class OyunButonu extends StatelessWidget {
-  const OyunButonu({
+/// Sade buton: birincil (turkuaz dolu), ikincil (çerçeveli), tehlike (kırmızı).
+class Buton extends StatelessWidget {
+  const Buton({
     super.key,
     required this.yazi,
-    required this.renk,
+    this.renk = ButonRenk.birincil,
     required this.onTap,
     this.mesgul = false,
+    this.ikon,
     this.yukseklik = 46,
   });
 
@@ -514,171 +216,154 @@ class OyunButonu extends StatelessWidget {
   final ButonRenk renk;
   final VoidCallback? onTap;
   final bool mesgul;
+  final IconData? ikon;
   final double yukseklik;
 
   @override
   Widget build(BuildContext context) {
-    final (List<Color> r, Color y) = switch (renk) {
-      ButonRenk.yesil => (const [Color(0xFF76D05E), Color(0xFF46A136)], Colors.white),
-      ButonRenk.mavi => (const [Color(0xFF5D8FEE), Color(0xFF2F5BC0)], Colors.white),
-      ButonRenk.sari => (const [Color(0xFFFFD46A), Color(0xFFE09A1F)], const Color(0xFF4A2A00)),
-      ButonRenk.mor => (const [Color(0xFF9B6CF0), Color(0xFF6A37C9)], Colors.white),
-      ButonRenk.gri => (const [Color(0xFF3A4872), Color(0xFF2C3860)], Colors.white),
-      ButonRenk.kirmizi => (const [Color(0xFFF06A6A), Color(0xFFC23030)], Colors.white),
-    };
-    final pasif = onTap == null || mesgul;
-    return Opacity(
-      opacity: pasif && !mesgul ? .45 : 1,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(13),
-          onTap: pasif ? null : onTap,
-          child: Ink(
-            height: yukseklik,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: r),
-              borderRadius: BorderRadius.circular(13),
-              border: const Border(
-                  bottom: BorderSide(color: Color(0x55000000), width: 3)),
+    final boyut = Size(64, yukseklik);
+    final icerik = mesgul
+        ? const SizedBox(
+            width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4))
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (ikon != null) ...[Icon(ikon, size: 19), const SizedBox(width: 8)],
+              Flexible(child: Text(yazi, overflow: TextOverflow.ellipsis)),
+            ],
+          );
+    final tik = mesgul ? null : onTap;
+    switch (renk) {
+      case ButonRenk.birincil:
+        return FilledButton(
+            onPressed: tik,
+            style: FilledButton.styleFrom(minimumSize: boyut),
+            child: mesgul
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: Colors.white))
+                : icerik);
+      case ButonRenk.ikincil:
+        return OutlinedButton(
+            onPressed: tik,
+            style: OutlinedButton.styleFrom(minimumSize: boyut),
+            child: icerik);
+      case ButonRenk.tehlike:
+        return OutlinedButton(
+            onPressed: tik,
+            style: OutlinedButton.styleFrom(
+              minimumSize: boyut,
+              foregroundColor: Renk.kirmizi,
+              side: const BorderSide(color: Color(0xFFFCA5A5)),
             ),
-            child: Center(
-              child: mesgul
-                  ? SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: y))
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(yazi,
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: y)),
-                      ),
-                    ),
-            ),
-          ),
-        ),
-      ),
-    );
+            child: icerik);
+    }
   }
 }
 
-/// Sipariş kartındaki küçük kare bilgi kutusu.
+/// Küçük etiket + değer (sipariş kartındaki fiyat / toplam / kalan).
 class Cip extends StatelessWidget {
   const Cip({super.key, required this.ust, required this.deger, this.durum});
 
   final String ust;
   final String deger;
 
-  /// null: normal, true: iyi (yeşil), false: uyarı (kırmızı)
+  /// null: normal, true: olumlu (yeşil), false: dikkat (kırmızı)
   final bool? durum;
 
   @override
   Widget build(BuildContext context) {
-    final kenar = durum == null
-        ? const Color(0xFF56688F)
+    final renk = durum == null
+        ? Renk.yazi
         : durum!
-            ? const Color(0xFF3F8F33)
-            : const Color(0xFFAA3333);
-    final zemin = durum == null
-        ? const Color(0xFF2C3A62)
-        : durum!
-            ? const Color(0xFF213A2C)
-            : const Color(0xFF3A2236);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-      decoration: BoxDecoration(
-        color: zemin,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kenar, width: 2),
-      ),
-      child: Column(
-        children: [
-          Text(ust,
+            ? Renk.yesil
+            : Renk.kirmizi;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(ust,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: Renk.soluk)),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(deger,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10.5, color: Renk.soluk)),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(deger,
-                maxLines: 1,
-                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+              style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w600, color: renk)),
+        ),
+      ],
     );
   }
 }
 
-/// Yuvarlak simgeli küçük etiket ("12sa", "Tanıtım yok" benzeri).
-class Etiket extends StatelessWidget {
-  const Etiket(
-      {super.key,
-      required this.isaret,
-      required this.yazi,
-      this.renk = Colors.white,
-      this.isaretRenk = const Color(0xFFCC3333)});
-
-  final String isaret;
+/// Renkli, sade durum etiketi.
+class DurumEtiketi extends StatelessWidget {
+  const DurumEtiketi(
+      {super.key, required this.yazi, required this.renk, required this.zemin});
   final String yazi;
   final Color renk;
-  final Color isaretRenk;
+  final Color zemin;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(3, 3, 10, 3),
-      decoration: BoxDecoration(
-          color: const Color(0xFF2A3557),
-          borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: renk, shape: BoxShape.circle),
-            child: Text(isaret,
-                style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w800, color: isaretRenk)),
-          ),
-          const SizedBox(width: 5),
-          Text(yazi, style: const TextStyle(fontSize: 13)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration:
+            BoxDecoration(color: zemin, borderRadius: BorderRadius.circular(6)),
+        child: Text(yazi,
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600, color: renk)),
+      );
+}
+
+/// Sayı rozeti (liste satırlarında).
+class SayiRozeti extends StatelessWidget {
+  const SayiRozeti({super.key, required this.sayi, this.vurgulu = false});
+  final int sayi;
+  final bool vurgulu;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(minWidth: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: vurgulu && sayi > 0 ? Renk.ana : const Color(0xFFEFF3F5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text('$sayi',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: vurgulu && sayi > 0 ? Colors.white : Renk.soluk)),
+      );
 }
 
 class BosDurum extends StatelessWidget {
-  const BosDurum({super.key, required this.em, required this.yazi});
-  final String em;
+  const BosDurum({super.key, required this.ikon, required this.yazi});
+  final IconData ikon;
   final String yazi;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 12),
         child: Column(
           children: [
-            Text(em, style: const TextStyle(fontSize: 50)),
-            const SizedBox(height: 8),
+            Icon(ikon, size: 44, color: const Color(0xFFB8C4CC)),
+            const SizedBox(height: 10),
             Text(yazi,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Renk.soluk, fontSize: 16)),
+                style: const TextStyle(color: Renk.soluk, fontSize: 15)),
           ],
         ),
       );
 }
 
-/// Alttan açılan, altın çizgili form sayfası.
+/// Alttan açılan form sayfası.
 Future<T?> altSayfa<T>(BuildContext context,
     {required String baslik,
     String? aciklama,
@@ -687,39 +372,30 @@ Future<T?> altSayfa<T>(BuildContext context,
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Colors.transparent,
+    showDragHandle: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (ctx) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF26345E), Color(0xFF1B2545)]),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: Renk.altin, width: 3)),
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              16, 18, 16, 20 + MediaQuery.of(ctx).viewPadding.bottom),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(baslik,
-                  style: const TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w700,
-                      color: Renk.altin)),
-              if (aciklama != null) ...[
-                const SizedBox(height: 4),
-                Text(aciklama,
-                    style: const TextStyle(color: Renk.soluk, fontSize: 14)),
-              ],
-              const SizedBox(height: 14),
-              _BirKez(builder: builder),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+            20, 0, 20, 20 + MediaQuery.of(ctx).viewPadding.bottom),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(baslik,
+                style: const TextStyle(
+                    fontSize: 19, fontWeight: FontWeight.w600, color: Renk.yazi)),
+            if (aciklama != null) ...[
+              const SizedBox(height: 4),
+              Text(aciklama,
+                  style: const TextStyle(color: Renk.soluk, fontSize: 14)),
             ],
-          ),
+            const SizedBox(height: 16),
+            _BirKez(builder: builder),
+          ],
         ),
       ),
     ),
@@ -789,9 +465,9 @@ class OneriliAlan extends StatelessWidget {
       optionsViewBuilder: (c, sec, liste) => Align(
         alignment: Alignment.topLeft,
         child: Material(
-          color: Renk.kart2,
-          elevation: 8,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          elevation: 6,
+          borderRadius: BorderRadius.circular(10),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 220, maxWidth: 360),
             child: ListView(
@@ -819,18 +495,19 @@ class ToplamKutusu extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Renk.girdi,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Renk.altin2, width: 2),
+          color: Renk.anaAcik,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
-            Expanded(child: Text(etiket)),
+            Expanded(
+                child: Text(etiket,
+                    style: const TextStyle(color: Renk.anaKoyu, fontSize: 14))),
             Text(deger,
                 style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    color: Renk.altin)),
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                    color: Renk.anaKoyu)),
           ],
         ),
       );

@@ -73,17 +73,40 @@ class _GirisEkraniState extends State<GirisEkrani> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('🌾', textAlign: TextAlign.center, style: TextStyle(fontSize: 64)),
-                    const SizedBox(height: 8),
-                    const LogoBaslik(ad: 'KELEŞ TARIM', altyazi: 'SATIŞ & TİCARET'),
+                    Center(
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Renk.ana,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.agriculture_outlined,
+                            color: Colors.white, size: 36),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text('Keleş Tarım',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Renk.yazi)),
+                    const SizedBox(height: 2),
+                    const Text('Satış ve ticaret takibi',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Renk.soluk)),
                     const SizedBox(height: 28),
                     Panel(
+                      padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(_kayit ? 'Yeni hesap' : 'Giriş yap',
                               style: const TextStyle(
-                                  fontSize: 21, fontWeight: FontWeight.w700)),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Renk.yazi)),
                           const SizedBox(height: 14),
                           TextFormField(
                             controller: _eposta,
@@ -116,11 +139,10 @@ class _GirisEkraniState extends State<GirisEkrani> {
                             onFieldSubmitted: (_) => _gonder(),
                           ),
                           const SizedBox(height: 18),
-                          OyunButonu(
+                          Buton(
                             yazi: _kayit ? 'Hesap Oluştur' : 'Giriş Yap',
-                            renk: ButonRenk.yesil,
                             mesgul: _mesgul,
-                            yukseklik: 52,
+                            yukseklik: 50,
                             onTap: _gonder,
                           ),
                           const SizedBox(height: 6),

@@ -6,7 +6,40 @@ import '../servis/veri.dart';
 import '../tema.dart';
 import 'formlar.dart';
 
-/// Fotoğraftaki mağaza kartlarına benzeyen sipariş kartı.
+/// Her aşamanın yazı ve zemin rengi.
+(Color, Color) asamaRenkleri(Asama a) => switch (a) {
+      Asama.fiyat => (Renk.amber, Renk.amberAcik),
+      Asama.teslim => (Renk.mavi, Renk.maviAcik),
+      Asama.tahsilat => (Renk.turuncu, Renk.turuncuAcik),
+      Asama.tamam => (Renk.yesil, Renk.yesilAcik),
+    };
+
+String asamaAdi(Asama a) => switch (a) {
+      Asama.fiyat => 'Fiyat bekliyor',
+      Asama.teslim => 'Teslim bekliyor',
+      Asama.tahsilat => 'Tahsilat bekliyor',
+      Asama.tamam => 'Tamamlandı',
+    };
+
+IconData asamaIkonu(Asama a) => switch (a) {
+      Asama.fiyat => Icons.sell_outlined,
+      Asama.teslim => Icons.local_shipping_outlined,
+      Asama.tahsilat => Icons.payments_outlined,
+      Asama.tamam => Icons.check_circle_outline,
+    };
+
+class AsamaEtiketi extends StatelessWidget {
+  const AsamaEtiketi({super.key, required this.asama});
+  final Asama asama;
+
+  @override
+  Widget build(BuildContext context) {
+    final (r, z) = asamaRenkleri(asama);
+    return DurumEtiketi(yazi: asamaAdi(asama), renk: r, zemin: z);
+  }
+}
+
+/// Sipariş kartı: müşteri, ürün, tutarlar ve sıradaki işlem.
 class SiparisKarti extends StatelessWidget {
   const SiparisKarti({super.key, required this.durum, required this.s});
   final Durum durum;
@@ -15,172 +48,152 @@ class SiparisKarti extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = s.asama;
-    final b = asamaBilgi[a]!;
     final fiyatli = s.fiyat != null;
-    final em = durum.firma?.urunBul(s.urun)?.em ?? b.em;
-    final (Color er, Color ei) = switch (a) {
-      Asama.fiyat => (Renk.kirmizi, Colors.white),
-      Asama.teslim => (Renk.altin, const Color(0xFF5A3200)),
-      Asama.tahsilat => (Renk.mavi, Colors.white),
-      Asama.tamam => (Renk.yesil, Colors.white),
+
+    final Widget? eylem = switch (a) {
+      Asama.fiyat => Buton(
+          yazi: 'Fiyat Gir',
+          ikon: Icons.sell_outlined,
+          yukseklik: 40,
+          onTap: () => fiyatGir(context, durum, s)),
+      Asama.teslim => Buton(
+          yazi: 'Teslim Edildi',
+          ikon: Icons.check,
+          yukseklik: 40,
+          onTap: () => teslimEt(context, durum, s)),
+      Asama.tahsilat => Buton(
+          yazi: 'Tahsilat Gir',
+          ikon: Icons.payments_outlined,
+          yukseklik: 40,
+          onTap: () => tahsilEt(context, durum, s)),
+      Asama.tamam => null,
     };
 
-    Widget? eylem;
-    switch (a) {
-      case Asama.fiyat:
-        eylem = OyunButonu(
-            yazi: '🏷️ Fiyat Gir',
-            renk: ButonRenk.sari,
-            onTap: () => fiyatGir(context, durum, s));
-      case Asama.teslim:
-        eylem = OyunButonu(
-            yazi: '🚚 Teslim Edildi',
-            renk: ButonRenk.yesil,
-            onTap: () => teslimEt(context, durum, s));
-      case Asama.tahsilat:
-        eylem = OyunButonu(
-            yazi: '💰 Tahsilat Gir',
-            renk: ButonRenk.mavi,
-            onTap: () => tahsilEt(context, durum, s));
-      case Asama.tamam:
-        eylem = null;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => detayGoster(context, durum, s),
-              child: Ink(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFF232F52), Color(0xFF1E2846)]),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Renk.cizgi, width: 2),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Renk.kart,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Renk.cizgi),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => detayGoster(context, durum, s),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    SizedBox(
-                      width: 70,
-                      child: Column(
-                        children: [
-                          Text(em,
-                              style: const TextStyle(fontSize: 46, shadows: [
-                                Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 4))
-                              ])),
-                          Container(
-                              height: 2,
-                              margin: const EdgeInsets.symmetric(vertical: 6),
-                              color: const Color(0xFF3E4F7E)),
-                          Text('#${s.no}',
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
+                    Text('#${s.no}',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Renk.soluk)),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.edit_note, size: 20),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(s.musteri,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700)),
-                              ),
-                              const Text('📍', style: TextStyle(fontSize: 13)),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 90),
-                                child: Text(durum.isim(s.olusturan),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: Renk.soluk, fontSize: 12.5)),
-                              ),
-                            ],
-                          ),
-                          Container(
-                              height: 1,
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              color: Renk.cizgi),
-                          Row(
-                            children: [
-                              Expanded(child: Cip(ust: 'Ürün', deger: s.urun)),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                  child: Cip(
-                                      ust: 'Miktar',
-                                      deger: '${sayi(s.miktar)} ${s.birim}')),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                  child: Cip(
-                                      ust: 'Birim fiyat',
-                                      deger: fiyatli ? tl(s.fiyat!) : '—',
-                                      durum: fiyatli ? null : false)),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                  child: Cip(
-                                      ust: a == Asama.tahsilat ? 'Kalan' : 'Toplam',
-                                      deger: !fiyatli
-                                          ? '—'
-                                          : tl(a == Asama.tahsilat ? s.kalan : s.toplam),
-                                      durum: a == Asama.tamam ? true : null)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              Etiket(isaret: '🕒', yazi: once(s.sonIslem)),
-                              Etiket(
-                                  isaret: b.isaret,
-                                  yazi: b.ad,
-                                  renk: er,
-                                  isaretRenk: ei),
-                              if (s.odenen > 0 && a != Asama.tamam)
-                                Etiket(
-                                    isaret: '₺',
-                                    yazi: '${kisaTl(s.odenen)} alındı',
-                                    renk: Renk.yesil,
-                                    isaretRenk: Colors.white),
-                            ],
-                          ),
-                          if (eylem != null) ...[
-                            const SizedBox(height: 10),
-                            eylem,
-                          ],
-                        ],
-                      ),
+                      child: Text(s.musteri,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Renk.yazi)),
                     ),
+                    const SizedBox(width: 8),
+                    AsamaEtiketi(asama: a),
                   ],
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text('${s.urun} · ${sayi(s.miktar)} ${s.birim}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, color: Renk.soluk)),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Divider(height: 1),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                        child: Cip(
+                            ust: 'Birim fiyat',
+                            deger: fiyatli ? tl(s.fiyat!) : '—')),
+                    Expanded(
+                        child: Cip(
+                            ust: 'Toplam', deger: fiyatli ? tl(s.toplam) : '—')),
+                    Expanded(
+                        child: a == Asama.tamam
+                            ? Cip(ust: 'Tahsil', deger: tl(s.odenen), durum: true)
+                            : Cip(
+                                ust: 'Kalan',
+                                deger: fiyatli ? tl(s.kalan) : '—',
+                                durum: fiyatli && s.kalan > 0 && s.teslim
+                                    ? false
+                                    : null)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule, size: 15, color: Renk.soluk),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '${once(s.sonIslem)} · ${durum.isim(s.olusturan)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12.5, color: Renk.soluk),
+                      ),
+                    ),
+                    if (eylem != null) ...[
+                      const SizedBox(width: 8),
+                      eylem,
+                    ],
+                  ],
+                ),
+              ],
             ),
           ),
-          if (a != Asama.tamam)
-            const Positioned(top: -5, right: -5, child: KirmiziNokta()),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+/// Ana sayfadaki "Son hareketler" için tek satırlık sipariş.
+class SiparisSatiri extends StatelessWidget {
+  const SiparisSatiri({super.key, required this.durum, required this.s});
+  final Durum durum;
+  final Siparis s;
+
+  @override
+  Widget build(BuildContext context) {
+    final (r, z) = asamaRenkleri(s.asama);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration:
+            BoxDecoration(color: z, borderRadius: BorderRadius.circular(9)),
+        child: Icon(asamaIkonu(s.asama), color: r, size: 20),
+      ),
+      title: Text(s.musteri,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+      subtitle: Text('${s.urun} · ${sayi(s.miktar)} ${s.birim} · ${once(s.sonIslem)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 13, color: Renk.soluk)),
+      trailing: Text(s.fiyat == null ? '—' : tl0(s.toplam),
+          style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w600, color: Renk.yazi)),
+      onTap: () => detayGoster(context, durum, s),
     );
   }
 }
@@ -192,7 +205,7 @@ class SiparisListesi extends StatefulWidget {
     required this.durum,
     required this.baslik,
     required this.filtre,
-    required this.bosEm,
+    required this.bosIkon,
     required this.bosYazi,
     this.ozet,
     this.asamaSecimi = false,
@@ -203,7 +216,7 @@ class SiparisListesi extends StatefulWidget {
   final Durum durum;
   final String baslik;
   final bool Function(Siparis) filtre;
-  final String bosEm;
+  final IconData bosIkon;
   final String bosYazi;
   final String Function(List<Siparis>)? ozet;
   final bool asamaSecimi;
@@ -239,51 +252,24 @@ class _SiparisListesiState extends State<SiparisListesi> {
                 '${s.musteri} ${s.urun} ${s.no} ${s.not}'.toLowerCase().contains(q))
             .toList();
         return ListView(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 120),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             if (widget.baslikGoster)
               Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+                padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
                 child: Text(widget.baslik,
-                    style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Renk.yazi)),
               ),
-            if (widget.asamaSecimi)
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    for (final (Asama? k, String ad) in [
-                      (null, 'Hepsi'),
-                      (Asama.fiyat, 'Fiyat'),
-                      (Asama.teslim, 'Teslim'),
-                      (Asama.tahsilat, 'Tahsilat'),
-                      (Asama.tamam, 'Tamam'),
-                    ])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(ad),
-                          selected: _asama == k,
-                          selectedColor: Renk.altin,
-                          labelStyle: TextStyle(
-                              color: _asama == k ? const Color(0xFF4A2A00) : Renk.yazi,
-                              fontWeight: FontWeight.w600),
-                          backgroundColor: const Color(0xFF26335B),
-                          showCheckmark: false,
-                          onSelected: (_) => setState(() => _asama = k),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            if (widget.asamaSecimi) const SizedBox(height: 10),
             TextField(
               controller: _ara,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Müşteri, ürün veya no ara…',
+                hintText: 'Müşteri, ürün veya sipariş no ara',
                 prefixIcon: const Icon(Icons.search),
+                isDense: true,
                 suffixIcon: _ara.text.isEmpty
                     ? null
                     : IconButton(
@@ -291,22 +277,53 @@ class _SiparisListesiState extends State<SiparisListesi> {
                         onPressed: () => setState(_ara.clear)),
               ),
             ),
-            const SizedBox(height: 10),
+            if (widget.asamaSecimi) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 38,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    for (final (Asama? k, String ad) in [
+                      (null, 'Tümü'),
+                      (Asama.fiyat, 'Fiyat'),
+                      (Asama.teslim, 'Teslim'),
+                      (Asama.tahsilat, 'Tahsilat'),
+                      (Asama.tamam, 'Tamamlanan'),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(ad),
+                          selected: _asama == k,
+                          labelStyle: TextStyle(
+                              color: _asama == k ? Renk.anaKoyu : Renk.yazi,
+                              fontWeight:
+                                  _asama == k ? FontWeight.w600 : FontWeight.w500),
+                          side: BorderSide(
+                              color: _asama == k ? Renk.ana : Renk.cizgi),
+                          onSelected: (_) => setState(() => _asama = k),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
             if (widget.ozet != null && l.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
                 child: Text(widget.ozet!(l),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Renk.soluk, fontSize: 14)),
+                    style: const TextStyle(color: Renk.soluk, fontSize: 13.5)),
               ),
             if (d.siparisHata != null)
-              BosDurum(em: '⚠️', yazi: hataYazisi(d.siparisHata!))
+              BosDurum(ikon: Icons.error_outline, yazi: hataYazisi(d.siparisHata!))
             else if (!d.yuklendi)
               const Padding(
                   padding: EdgeInsets.all(30),
-                  child: Center(child: CircularProgressIndicator(color: Renk.altin)))
+                  child: Center(child: CircularProgressIndicator()))
             else if (l.isEmpty)
-              BosDurum(em: widget.bosEm, yazi: widget.bosYazi)
+              BosDurum(ikon: widget.bosIkon, yazi: widget.bosYazi)
             else
               for (final s in l) SiparisKarti(durum: d, s: s),
           ],
@@ -322,7 +339,7 @@ class SiparisListesiEkrani extends StatelessWidget {
     required this.durum,
     required this.baslik,
     required this.filtre,
-    required this.bosEm,
+    required this.bosIkon,
     required this.bosYazi,
     this.ozet,
     this.asamaSecimi = false,
@@ -332,7 +349,7 @@ class SiparisListesiEkrani extends StatelessWidget {
   final Durum durum;
   final String baslik;
   final bool Function(Siparis) filtre;
-  final String bosEm;
+  final IconData bosIkon;
   final String bosYazi;
   final String Function(List<Siparis>)? ozet;
   final bool asamaSecimi;
@@ -345,7 +362,7 @@ class SiparisListesiEkrani extends StatelessWidget {
           durum: durum,
           baslik: baslik,
           filtre: filtre,
-          bosEm: bosEm,
+          bosIkon: bosIkon,
           bosYazi: bosYazi,
           ozet: ozet,
           asamaSecimi: asamaSecimi,

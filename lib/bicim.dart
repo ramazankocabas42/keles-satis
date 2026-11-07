@@ -4,7 +4,12 @@ final _tl = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits:
 final _sayi = NumberFormat.decimalPattern('tr_TR')..maximumFractionDigits = 3;
 final _kisa = NumberFormat.compact(locale: 'tr_TR');
 
+final _tl0 = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 0);
+
 String tl(num n) => _tl.format(n);
+
+/// Kuruşsuz tutar (özet kartları için): ₺81.500
+String tl0(num n) => _tl0.format(n);
 String sayi(num n) => _sayi.format(n);
 
 /// Üstteki sayaçlar için kısa gösterim: 2,3 Mn ₺
