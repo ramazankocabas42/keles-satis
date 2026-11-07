@@ -203,29 +203,35 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
             _ikili(
               TextField(
                 controller: miktar,
+                onChanged: (_) => set(() {}),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Miktar', hintText: '0'),
               ),
               KeyedSubtree(
                 key: ValueKey(birimAnahtar),
-                child: _birimSecici(birimler, birim, (v) => birim = v),
+                child: _birimSecici(birimler, birim, (v) => set(() => birim = v)),
               ),
             ),
             const SizedBox(height: 12),
+            TextField(
+              controller: fiyat,
+              onChanged: (_) => set(() {}),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                  labelText: 'Birim fiyat (₺ / $birim)',
+                  hintText: 'Biliyorsanız yazın, boş bırakılabilir'),
+            ),
+            const SizedBox(height: 12),
+            _CanliToplam(
+                miktar: sayiOku(miktar.text),
+                fiyat: sayiOku(fiyat.text),
+                birim: birim),
             TextField(
               controller: not,
               maxLines: 2,
               decoration: const InputDecoration(
                   labelText: 'Not (isteğe bağlı)',
                   hintText: 'Teslim adresi, tarih vb.'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: fiyat,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                  labelText: 'Birim fiyat ₺ (biliyorsanız)',
-                  hintText: 'Boş bırakılabilir'),
             ),
             const SizedBox(height: 16),
             _butonlar(ctx,
@@ -238,6 +244,54 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
       });
     },
   );
+}
+
+/// "250 kg × 12,50 ₺ = 3.125,00 ₺" şeklinde anında hesaplanan toplam.
+class _CanliToplam extends StatelessWidget {
+  const _CanliToplam(
+      {required this.miktar, required this.fiyat, required this.birim});
+  final double? miktar;
+  final double? fiyat;
+  final String birim;
+
+  @override
+  Widget build(BuildContext context) {
+    final hazir = miktar != null && miktar! > 0 && fiyat != null && fiyat! >= 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Renk.girdi,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: hazir ? Renk.altin2 : const Color(0xFF3A4A78), width: 2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Toplam tutar',
+                    style: TextStyle(color: Renk.soluk, fontSize: 13)),
+                if (hazir)
+                  Text('${sayi(miktar!)} $birim × ${tl(fiyat!)}',
+                      style: const TextStyle(fontSize: 13.5)),
+              ],
+            ),
+          ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(hazir ? tl(miktar! * fiyat!) : '—',
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: hazir ? Renk.altin : Renk.soluk)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _UrunKaresi extends StatelessWidget {
@@ -325,7 +379,7 @@ Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Miktar (kesin)'),
               ),
-              _birimSecici(birimler, birim, (v) => birim = v),
+              _birimSecici(birimler, birim, (v) => set(() => birim = v)),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -337,9 +391,7 @@ Future<void> fiyatGir(BuildContext context, Durum d, Siparis s) {
                   labelText: 'Birim fiyat (₺)', hintText: '0,00'),
             ),
             const SizedBox(height: 12),
-            ToplamKutusu(
-                etiket: 'Toplam tutar',
-                deger: (m != null && p != null) ? tl(m * p) : '—'),
+            _CanliToplam(miktar: m, fiyat: p, birim: birim),
             _butonlar(ctx,
                 yazi: 'Fiyatı Kaydet',
                 renk: ButonRenk.sari,
