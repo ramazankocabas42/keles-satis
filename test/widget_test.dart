@@ -131,4 +131,12 @@ void main() {
     expect(metin, contains('Nakit'));
     expect(metin, contains('Kalan'));
   });
+
+  test('Aracı okunur; boşsa doğrudan satış sayılır', () {
+    final a = Siparis.fromMap('1', {'musteri': 'A', 'urun': 'Çekirdek', 'miktar': 1, 'araci': ' Mehmet '});
+    final b = Siparis.fromMap('2', {'musteri': 'B', 'urun': 'Çekirdek', 'miktar': 1});
+    expect(a.araci, 'Mehmet');
+    expect(a.araciAdi, 'Mehmet');
+    expect(b.araciAdi, dogrudanSatis);
+  });
 }

@@ -72,6 +72,7 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
     ...f.urunler.map((u) => u.ad),
     for (final s in d.siparisler) s.urun.trim()
   }..removeWhere((e) => e.isEmpty);
+  final aracilar = araciListesi(d);
 
   return altSayfa(
     context,
@@ -84,6 +85,8 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
       final not = TextEditingController();
       final musteriOdak = FocusNode();
       final urunOdak = FocusNode();
+      final araci = TextEditingController();
+      final araciOdak = FocusNode();
       var birim = f.birimListesi.first;
       var birimler = [...f.birimListesi];
       var mesgul = false;
@@ -128,6 +131,7 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
           final ok = await _calistir(ctx, () async {
             no = await Veri.siparisEkle(d.fid, {
               'musteri': musteri.text.trim(),
+              'araci': araci.text.trim(),
               'urun': urun.text.trim(),
               'miktar': m,
               'birim': birim,
@@ -163,6 +167,15 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
               secenekler: musteriler,
               etiket: 'Müşteri',
               ipucu: 'Firma veya kişi adı',
+              buyukHarf: TextCapitalization.words,
+            ),
+            const SizedBox(height: 12),
+            OneriliAlan(
+              controller: araci,
+              focusNode: araciOdak,
+              secenekler: aracilar,
+              etiket: 'Aracı (kimin aracılığıyla)',
+              ipucu: 'Aracı yoksa boş bırakın',
               buyukHarf: TextCapitalization.words,
             ),
             const SizedBox(height: 12),
@@ -646,6 +659,27 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+              decoration: BoxDecoration(
+                  color: Renk.anaAcik, borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  const Icon(Icons.handshake_outlined, size: 19, color: Renk.anaKoyu),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                        s.araci.isEmpty ? 'Aracı: yok (doğrudan satış)' : 'Aracı: ${s.araci}',
+                        style: const TextStyle(
+                            color: Renk.anaKoyu, fontWeight: FontWeight.w600)),
+                  ),
+                  TextButton(
+                      onPressed: () => araciDegistir(ctx, d, s),
+                      child: Text(s.araci.isEmpty ? 'Ekle' : 'Değiştir')),
+                ],
+              ),
+            ),
             if (s.not.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -814,6 +848,82 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
         );
       },
     ),
+  );
+}
+
+/// Daha önce kullanılmış aracı adları (öneri listesi için).
+Set<String> araciListesi(Durum d) =>
+    {for (final s in d.siparisler) s.araci.trim()}..removeWhere((e) => e.isEmpty);
+
+/// Siparişin aracısını ekler / değiştirir / kaldırır.
+Future<void> araciDegistir(BuildContext ctx, Durum d, Siparis s) {
+  final aracilar = araciListesi(d);
+  return altSayfa(
+    ctx,
+    baslik: 'Aracı · Sipariş #${s.no}',
+    aciklama: '${s.musteri} · ${s.urun} ${sayi(s.miktar)} ${s.birim}',
+    builder: (c) {
+      final araci = TextEditingController(text: s.araci);
+      final odak = FocusNode();
+      var mesgul = false;
+      return StatefulBuilder(builder: (c, set) {
+        Future<void> kaydet(String yeni) async {
+          set(() => mesgul = true);
+          final ok = await _calistir(
+              c,
+              () => Veri.siparisGuncelle(d.fid, s.id, {'araci': yeni.trim()},
+                  islem: {'tur': 'duzeltme'}),
+              basari: yeni.trim().isEmpty
+                  ? 'Aracı kaldırıldı'
+                  : 'Aracı kaydedildi: ${yeni.trim()}');
+          if (!c.mounted) return;
+          if (ok) {
+            Navigator.pop(c);
+          } else {
+            set(() => mesgul = false);
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OneriliAlan(
+              controller: araci,
+              focusNode: odak,
+              secenekler: aracilar,
+              etiket: 'Aracı adı',
+              ipucu: 'Kimin aracılığıyla satıldı?',
+              buyukHarf: TextCapitalization.words,
+            ),
+            if (aracilar.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final a in aracilar.take(12))
+                    ActionChip(
+                        label: Text(a),
+                        onPressed: () => set(() => araci.text = a)),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            _butonlar(c,
+                yazi: 'Kaydet',
+                renk: ButonRenk.birincil,
+                mesgul: mesgul,
+                onTap: () => kaydet(araci.text)),
+            if (s.araci.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              TextButton(
+                  onPressed: mesgul ? null : () => kaydet(''),
+                  child: const Text('Aracıyı kaldır (doğrudan satış)')),
+            ],
+          ],
+        );
+      });
+    },
   );
 }
 

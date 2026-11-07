@@ -6,6 +6,7 @@ import '../servis/bildirim.dart';
 import '../servis/guncelleme.dart';
 import '../servis/veri.dart';
 import '../tema.dart';
+import 'aracilar.dart';
 import 'ayarlar.dart';
 import 'formlar.dart';
 import 'listeler.dart';
@@ -21,7 +22,7 @@ class AnaKabuk extends StatefulWidget {
 }
 
 class _AnaKabukState extends State<AnaKabuk> {
-  int _sekme = 0; // 0 ana, 1 fiyat, 2 teslim, 3 tahsilat
+  int _sekme = 0; // 0 ana, 1 fiyat, 2 teslim, 3 tahsilat, 4 aracılar
 
   @override
   void initState() {
@@ -77,6 +78,7 @@ class _AnaKabukState extends State<AnaKabuk> {
               bosYazi: 'Tahsil edilecek alacak yok.',
               ozet: (l) =>
                   'Toplam alacak ${tl(l.fold(0.0, (a, s) => a + s.kalan))}'),
+          4 => AraciPaneli(key: const ValueKey('araci'), durum: d),
           _ => _AnaSayfa(durum: d, git: _git, sekmeyeGit: _sekmeyeGit),
         };
 
@@ -182,6 +184,10 @@ class _AnaKabukState extends State<AnaKabuk> {
                     icon: rozetli(Icons.payments_outlined, nC),
                     selectedIcon: rozetli(Icons.payments, nC),
                     label: 'Tahsilat'),
+                const NavigationDestination(
+                    icon: Icon(Icons.handshake_outlined),
+                    selectedIcon: Icon(Icons.handshake),
+                    label: 'Aracılar'),
               ],
             ),
           ),
@@ -460,6 +466,14 @@ class _AnaSayfa extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
           child: Column(
             children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                leading: const Icon(Icons.handshake_outlined, color: Renk.anaKoyu),
+                title: const Text('Aracı bazında satışlar'),
+                trailing: const Icon(Icons.chevron_right, color: Renk.soluk),
+                onTap: () => sekmeyeGit(4),
+              ),
+              const Divider(height: 1, indent: 54),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                 leading: const Icon(Icons.people_outline, color: Renk.anaKoyu),

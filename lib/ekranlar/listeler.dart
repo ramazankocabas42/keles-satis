@@ -108,7 +108,9 @@ class SiparisKarti extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('${s.urun} · ${sayi(s.miktar)} ${s.birim}',
+                Text(
+                    '${s.urun} · ${sayi(s.miktar)} ${s.birim}'
+                    '${s.araci.isEmpty ? '' : ' · Aracı: ${s.araci}'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 14, color: Renk.soluk)),
@@ -249,7 +251,9 @@ class _SiparisListesiState extends State<SiparisListesi> {
             .where((s) => _asama == null || s.asama == _asama)
             .where((s) =>
                 q.isEmpty ||
-                '${s.musteri} ${s.urun} ${s.no} ${s.not}'.toLowerCase().contains(q))
+                '${s.musteri} ${s.urun} ${s.no} ${s.not} ${s.araci}'
+                    .toLowerCase()
+                    .contains(q))
             .toList();
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),

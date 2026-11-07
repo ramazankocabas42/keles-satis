@@ -13,6 +13,8 @@ String _s(Object? v) => v == null ? '' : '$v';
 List<String> _ls(Object? v) =>
     v is List ? v.map((e) => '$e').toList() : <String>[];
 
+const dogrudanSatis = 'Doğrudan satış';
+
 const varsayilanBirimler = [
   'kg',
   'ton',
@@ -91,6 +93,7 @@ class Siparis {
     required this.miktar,
     required this.birim,
     this.not = '',
+    this.araci = '',
     required this.olusturan,
     required this.olusturma,
     this.guncelleme = 0,
@@ -116,6 +119,9 @@ class Siparis {
   final double miktar;
   final String birim;
   final String not;
+
+  /// Satışın kimin aracılığıyla yapıldığı; boşsa doğrudan satış.
+  final String araci;
   final String olusturan;
   final int olusturma;
   final int guncelleme;
@@ -153,6 +159,9 @@ class Siparis {
 
   int get sonIslem => guncelleme > 0 ? guncelleme : olusturma;
 
+  /// Raporlarda gösterilecek aracı adı.
+  String get araciAdi => araci.isEmpty ? dogrudanSatis : araci;
+
   factory Siparis.fromMap(String id, Map<String, dynamic> m) => Siparis(
         id: id,
         no: _i(m['no']),
@@ -161,6 +170,7 @@ class Siparis {
         miktar: _d(m['miktar']),
         birim: _s(m['birim']),
         not: _s(m['not']),
+        araci: _s(m['araci']).trim(),
         olusturan: _s(m['olusturan']),
         olusturma: _i(m['olusturma']),
         guncelleme: _i(m['guncelleme']),
