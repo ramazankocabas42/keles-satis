@@ -74,21 +74,38 @@ class Veri {
       throw 'Bu davet kodu bulunamadı. Kodu yöneticiden tekrar isteyin.';
     }
     final saha = k.data()?['tur'] == 'saha';
-    final b = _db.batch();
-    b.set(firmalar.doc(fid).collection('katilim').doc(uid), {'kod': kod});
-    b.update(firmalar.doc(fid), {
-      saha ? 'saha' : 'uyeler': FieldValue.arrayUnion([uid]),
-    });
-    b.set(kullanicilar.doc(uid), {'ad': ad.trim(), 'firmaId': fid},
-        SetOptions(merge: true));
+
+    // Zaten bu firmadaysa (ör. daha önce katılıp "başka firma" dediyse)
+    // yeniden eklemeye çalışma; yalnızca profili bağla.
+    var zatenVar = false;
     try {
-      await b.commit();
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw 'Bu kod artık geçerli değil. Yöneticiden yeni kodu isteyin.';
-      }
-      rethrow;
+      final f = await firmalar.doc(fid).get(const GetOptions(source: Source.server));
+      final d = f.data() ?? {};
+      zatenVar = ((d['uyeler'] as List?)?.contains(uid) ?? false) ||
+          ((d['saha'] as List?)?.contains(uid) ?? false);
+    } catch (_) {
+      // Okuyamıyorsa üye değildir; normal katılıma devam.
     }
+
+    if (!zatenVar) {
+      final b = _db.batch();
+      b.set(firmalar.doc(fid).collection('katilim').doc(uid), {'kod': kod});
+      b.update(firmalar.doc(fid), {
+        saha ? 'saha' : 'uyeler': FieldValue.arrayUnion([uid]),
+      });
+      try {
+        // Sunucu onayını bekle; firma ekranı ancak üyelik kesinleşince açılsın.
+        await b.commit();
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') {
+          throw 'Bu kod artık geçerli değil. Yöneticiden yeni kodu isteyin.';
+        }
+        rethrow;
+      }
+    }
+    await kullanicilar
+        .doc(uid)
+        .set({'ad': ad.trim(), 'firmaId': fid}, SetOptions(merge: true));
   }
 
   /// Eski sürümden kalan, firma kaydındaki davet kodunu yalnızca
@@ -184,17 +201,37 @@ class Veri {
 /// Bir firmanın canlı verisi: firma ayarları, siparişler ve kullanıcı adları.
 class Durum extends ChangeNotifier {
   Durum({required this.fid, required this.uid}) {
+    _firmayiDinle();
+  }
+
+  int _firmaDeneme = 0;
+  bool _kapandi = false;
+
+  /// Katıldıktan hemen sonra sunucu üyeliği henüz görmemiş olabilir;
+  /// "erişim yok" gelirse birkaç kez bekleyip yeniden dener.
+  void _firmayiDinle() {
+    _fAbone?.cancel();
     _fAbone = Veri.firmalar.doc(fid).snapshots().listen((s) {
+      _firmaDeneme = 0;
       firma = s.exists ? Firma.fromMap(s.id, s.data()!) : null;
       firmaYok = !s.exists;
       firmaHata = null;
       _rolDegisti();
       notifyListeners();
     }, onError: (Object e) {
+      if (_firmaDeneme < 4 && !_kapandi) {
+        _firmaDeneme++;
+        Future.delayed(Duration(seconds: 2 * _firmaDeneme), () {
+          if (!_kapandi) _firmayiDinle();
+        });
+        return;
+      }
       firmaHata = e;
       notifyListeners();
     });
   }
+
+  int _siparisDeneme = 0;
 
   /// Rol: 'uye' (tam yetki), 'saha' (yalnızca kendi siparişleri) ya da null.
   String? _rol;
@@ -246,6 +283,7 @@ class Durum extends ChangeNotifier {
             .orderBy('guncelleme', descending: true)
             .limit(2000);
     _sAbone = q.snapshots().listen((s) {
+      _siparisDeneme = 0;
       final l = s.docs.map((d) => Siparis.fromMap(d.id, d.data())).toList();
       if (sadeceKendim) l.sort((a, b) => b.sonIslem.compareTo(a.sonIslem));
       siparisler = l;
@@ -257,6 +295,16 @@ class Durum extends ChangeNotifier {
         Hareketler.isle(fid, uid, siparisler, isimBul: _isimBekle);
       }
     }, onError: (Object e) {
+      if (_siparisDeneme < 4 && !_kapandi) {
+        _siparisDeneme++;
+        Future.delayed(Duration(seconds: 2 * _siparisDeneme), () {
+          if (!_kapandi && _rol != null) {
+            _sAbone?.cancel();
+            _siparisleriDinle(_rol == 'saha');
+          }
+        });
+        return;
+      }
       siparisHata = e;
       yuklendi = true;
       notifyListeners();
@@ -350,6 +398,7 @@ class Durum extends ChangeNotifier {
 
   @override
   void dispose() {
+    _kapandi = true;
     _fAbone?.cancel();
     _sAbone?.cancel();
     _gAbone?.cancel();

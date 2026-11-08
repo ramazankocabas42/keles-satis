@@ -76,7 +76,13 @@ class _FirmaKapi extends StatefulWidget {
 }
 
 class _FirmaKapiState extends State<_FirmaKapi> {
-  late final Durum _durum = Durum(fid: widget.fid, uid: widget.uid);
+  late Durum _durum = Durum(fid: widget.fid, uid: widget.uid);
+
+  void _yenidenDene() {
+    final eski = _durum;
+    setState(() => _durum = Durum(fid: widget.fid, uid: widget.uid));
+    eski.dispose();
+  }
 
   @override
   void dispose() {
@@ -110,7 +116,14 @@ class _FirmaKapiState extends State<_FirmaKapi> {
                         ),
                         const SizedBox(height: 18),
                         Buton(
+                          yazi: 'Tekrar dene',
+                          ikon: Icons.refresh,
+                          onTap: _yenidenDene,
+                        ),
+                        const SizedBox(height: 10),
+                        Buton(
                           yazi: 'Başka firmaya katıl / yeni kur',
+                          renk: ButonRenk.ikincil,
                           onTap: () => Veri.firmadanAyril(widget.uid),
                         ),
                         const SizedBox(height: 8),
