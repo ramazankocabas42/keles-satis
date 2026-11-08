@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../servis/guncelleme.dart';
 import '../servis/veri.dart';
 import '../tema.dart';
 import 'ana.dart';
@@ -177,6 +178,16 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
   bool _mesgul = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Ekipten çıkarılmış ya da yeni katılan biri ana ekrana giremeden
+    // burada kalır; eski sürümdeyse güncellemeyi burada da görsün.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Guncelleme.kontrolEt(context);
+    });
+  }
+
+  @override
   void dispose() {
     _ad.dispose();
     _kod.dispose();
@@ -284,6 +295,14 @@ class _KurulumEkraniState extends State<KurulumEkrani> {
               yukseklik: 54,
               mesgul: _mesgul,
               onTap: _devam,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              Guncelleme.buSurum > 0
+                  ? 'Uygulama sürümü: ${Guncelleme.buSurum}'
+                  : 'Uygulama sürümü: geliştirme',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Renk.soluk, fontSize: 12.5),
             ),
           ],
         ),

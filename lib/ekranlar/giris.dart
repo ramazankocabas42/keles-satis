@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../servis/guncelleme.dart';
 import '../servis/veri.dart';
 import '../tema.dart';
 
@@ -18,6 +19,14 @@ class _GirisEkraniState extends State<GirisEkrani> {
   bool _kayit = false;
   bool _mesgul = false;
   bool _gizli = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Guncelleme.kontrolEt(context);
+    });
+  }
 
   @override
   void dispose() {
@@ -161,6 +170,14 @@ class _GirisEkraniState extends State<GirisEkrani> {
                         ],
                       ),
                     ),
+                    Text(
+                      Guncelleme.buSurum > 0
+                          ? 'Sürüm ${Guncelleme.buSurum}'
+                          : 'Geliştirme sürümü',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Renk.soluk, fontSize: 12.5),
+                    ),
+                    const SizedBox(height: 6),
                     const Text(
                       'Eğitim Takip hesabınız varsa aynı e-posta ve şifreyle girebilirsiniz.',
                       textAlign: TextAlign.center,
