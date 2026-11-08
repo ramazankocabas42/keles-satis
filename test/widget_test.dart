@@ -159,4 +159,19 @@ void main() {
     expect(aramadaEslesir(s, '42'), isTrue);
     expect(aramadaEslesir(s, 'ahmet'), isFalse);
   });
+
+  test('Saha bağlantıları okunur', () {
+    final s = Siparis.fromMap('1', {
+      'musteri': 'A', 'urun': 'Çekirdek', 'miktar': 1,
+      'araci': 'Halime', 'gorenler': ['h1'],
+    });
+    expect(s.gorenler, ['h1']);
+    final f = Firma.fromMap('f', {
+      'ad': 'X', 'sahip': 'u', 'uyeler': ['u'], 'yoneticiler': ['u'],
+      'saha': ['h1'], 'sahaAraci': {'h1': ['Halime', 'Halime Hanım']},
+    });
+    expect(f.saha, ['h1']);
+    expect(f.sahaAraci['h1'], ['Halime', 'Halime Hanım']);
+    expect(araMetni('Halime Hanım'), araMetni('HALİME HANIM'));
+  });
 }

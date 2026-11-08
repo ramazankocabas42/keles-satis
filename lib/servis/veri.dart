@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../bicim.dart';
 import '../modeller.dart';
 import 'bildirim.dart';
 
@@ -217,6 +218,7 @@ class Durum extends ChangeNotifier {
       firmaYok = !s.exists;
       firmaHata = null;
       _rolDegisti();
+      if (yuklendi) _eslestirmeyiZamanla();
       notifyListeners();
     }, onError: (Object e) {
       if (_firmaDeneme < 4 && !_kapandi) {
@@ -243,6 +245,8 @@ class Durum extends ChangeNotifier {
       _rol = yeni;
       _sAbone?.cancel();
       _sAbone = null;
+      _sAbone2?.cancel();
+      _sAbone2 = null;
       siparisler = const [];
       yuklendi = false;
       if (yeni != null) _siparisleriDinle(yeni == 'saha');
@@ -274,42 +278,150 @@ class Durum extends ChangeNotifier {
     }
   }
 
-  void _siparisleriDinle(bool sadeceKendim) {
-    // Saha çalışanı yalnızca kendi girdiklerini okuyabilir (kurallar da
-    // bunu zorunlu tutar); sıralama telefonda yapılır.
-    final Query<Map<String, dynamic>> q = sadeceKendim
-        ? Veri.siparisler(fid).where('olusturan', isEqualTo: uid).limit(2000)
-        : Veri.siparisler(fid)
-            .orderBy('guncelleme', descending: true)
-            .limit(2000);
-    _sAbone = q.snapshots().listen((s) {
+  // Saha çalışanı için iki ayrı sorgu: kendi girdikleri ve aracı olduğu
+  // (gorenler) satışlar. Kurallar yalnızca bunları okumaya izin verir.
+  StreamSubscription? _sAbone2;
+  Map<String, Siparis> _kendi = {};
+  Map<String, Siparis> _bagli = {};
+
+  void _sahaListesiniYay() {
+    final l = {..._bagli, ..._kendi}.values.toList()
+      ..sort((a, b) => b.sonIslem.compareTo(a.sonIslem));
+    siparisler = l;
+    yuklendi = true;
+    siparisHata = null;
+    notifyListeners();
+    _isimleriGetir();
+  }
+
+  void _siparisHatasi(Object e) {
+    if (_siparisDeneme < 4 && !_kapandi) {
+      _siparisDeneme++;
+      Future.delayed(Duration(seconds: 2 * _siparisDeneme), () {
+        if (!_kapandi && _rol != null) {
+          _sAbone?.cancel();
+          _sAbone2?.cancel();
+          _siparisleriDinle(_rol == 'saha');
+        }
+      });
+      return;
+    }
+    siparisHata = e;
+    yuklendi = true;
+    notifyListeners();
+  }
+
+  void _siparisleriDinle(bool saha) {
+    if (saha) {
+      _kendi = {};
+      _bagli = {};
+      _sAbone = Veri.siparisler(fid)
+          .where('olusturan', isEqualTo: uid)
+          .limit(2000)
+          .snapshots()
+          .listen((s) {
+        _siparisDeneme = 0;
+        _kendi = {
+          for (final d in s.docs) d.id: Siparis.fromMap(d.id, d.data())
+        };
+        _sahaListesiniYay();
+      }, onError: _siparisHatasi);
+      _sAbone2 = Veri.siparisler(fid)
+          .where('gorenler', arrayContains: uid)
+          .limit(2000)
+          .snapshots()
+          .listen((s) {
+        _bagli = {
+          for (final d in s.docs) d.id: Siparis.fromMap(d.id, d.data())
+        };
+        _sahaListesiniYay();
+      }, onError: (Object e) => debugPrint('Aracı satışları okunamadı: $e'));
+      return;
+    }
+    _sAbone = Veri.siparisler(fid)
+        .orderBy('guncelleme', descending: true)
+        .limit(2000)
+        .snapshots()
+        .listen((s) {
       _siparisDeneme = 0;
-      final l = s.docs.map((d) => Siparis.fromMap(d.id, d.data())).toList();
-      if (sadeceKendim) l.sort((a, b) => b.sonIslem.compareTo(a.sonIslem));
-      siparisler = l;
+      siparisler =
+          s.docs.map((d) => Siparis.fromMap(d.id, d.data())).toList();
       yuklendi = true;
       siparisHata = null;
       notifyListeners();
       _isimleriGetir();
-      if (!sadeceKendim && !s.metadata.isFromCache) {
+      if (!s.metadata.isFromCache) {
         Hareketler.isle(fid, uid, siparisler, isimBul: _isimBekle);
+        _eslestirmeyiZamanla();
       }
-    }, onError: (Object e) {
-      if (_siparisDeneme < 4 && !_kapandi) {
-        _siparisDeneme++;
-        Future.delayed(Duration(seconds: 2 * _siparisDeneme), () {
-          if (!_kapandi && _rol != null) {
-            _sAbone?.cancel();
-            _siparisleriDinle(_rol == 'saha');
-          }
-        });
-        return;
-      }
-      siparisHata = e;
-      yuklendi = true;
-      notifyListeners();
-    });
+    }, onError: _siparisHatasi);
   }
+
+  // ---- Yönetici: aracı satışlarını saha çalışanlarına bağlama ----
+  Timer? _eslestirmeZamani;
+  bool _eslestiriliyor = false;
+
+  void _eslestirmeyiZamanla() {
+    if (!yonetici) return;
+    _eslestirmeZamani?.cancel();
+    _eslestirmeZamani = Timer(const Duration(seconds: 3), _sahaEslestir);
+  }
+
+  /// Bir siparişin aracısı hangi saha çalışanlarına ait?
+  Future<Map<String, Set<String>>> _sahaAdlari(Firma f) async {
+    final adlar = <String, Set<String>>{};
+    for (final u in f.saha) {
+      final k = <String>{};
+      final ad = await _isimBekle(u);
+      if (ad.isNotEmpty && ad != 'Bir kullanıcı' && ad != '…') k.add(araMetni(ad));
+      for (final a in f.sahaAraci[u] ?? const <String>[]) {
+        if (a.trim().isNotEmpty) k.add(araMetni(a));
+      }
+      adlar[u] = k;
+    }
+    return adlar;
+  }
+
+  /// Aracı adı bir saha çalışanına ait satışların "gorenler" listesini
+  /// günceller; böylece o satışlar çalışanın Hızlı Satış sayfasında görünür.
+  /// Sıralamayı ve bildirimleri etkilemez.
+  Future<void> _sahaEslestir() async {
+    final f = firma;
+    if (f == null || !yonetici || _eslestiriliyor || _kapandi) return;
+    _eslestiriliyor = true;
+    try {
+      final adlar = await _sahaAdlari(f);
+      final degisecek = <String, List<String>>{};
+      for (final s in siparisler) {
+        final a = araMetni(s.araci);
+        final istenen = <String>[
+          if (a.isNotEmpty)
+            for (final e in adlar.entries)
+              if (e.value.contains(a)) e.key
+        ]..sort();
+        final simdiki = [...s.gorenler]..sort();
+        if (istenen.join(',') != simdiki.join(',')) degisecek[s.id] = istenen;
+      }
+      if (degisecek.isEmpty) return;
+      final ids = degisecek.keys.toList();
+      for (var i = 0; i < ids.length; i += 400) {
+        final b = FirebaseFirestore.instance.batch();
+        for (final id in ids.skip(i).take(400)) {
+          b.update(Veri.siparisler(fid).doc(id), {'gorenler': degisecek[id]});
+        }
+        await b.commit();
+      }
+    } catch (e) {
+      debugPrint('Saha eşleştirmesi yapılamadı: $e');
+    } finally {
+      _eslestiriliyor = false;
+    }
+  }
+
+  /// Ayarlar ekranı için: bu saha çalışanına bağlı aracı satışı sayısı.
+  int bagliSatisSayisi(String sahaUid) =>
+      siparisler.where((s) => s.gorenler.contains(sahaUid)).length;
+
 
   final String fid;
   final String uid;
@@ -399,6 +511,8 @@ class Durum extends ChangeNotifier {
   @override
   void dispose() {
     _kapandi = true;
+    _eslestirmeZamani?.cancel();
+    _sAbone2?.cancel();
     _fAbone?.cancel();
     _sAbone?.cancel();
     _gAbone?.cancel();

@@ -58,6 +58,86 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     }
   }
 
+  /// Bir saha çalışanına ait aracı adlarını seçtirir. Seçilen adla
+  /// yazılmış (eski ve yeni) satışlar o çalışanın sayfasında görünür.
+  Future<void> _araciEslestir(String u) {
+    final f = d.firma!;
+    final ad = d.isim(u);
+    final secili = {...?f.sahaAraci[u]};
+    final tumu = {...araciListesi(d), ...secili}.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return altSayfa(
+      context,
+      baslik: 'Aracı adlarını eşleştir',
+      aciklama: '$ad hangi aracı adlarıyla geçiyor? Seçtiğiniz adla girilmiş eski '
+          've yeni satışlar onun Hızlı Satış sayfasında görünür.',
+      builder: (c) {
+        var mesgul = false;
+        return StatefulBuilder(builder: (c, set) {
+          final otomatik = araMetni(ad);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                    color: Renk.anaAcik, borderRadius: BorderRadius.circular(10)),
+                child: Text(
+                    'Aracı adı "$ad" olarak yazılmış satışlar zaten kendiliğinden eklenir.',
+                    style: const TextStyle(color: Renk.anaKoyu, fontSize: 13.5)),
+              ),
+              if (tumu.isEmpty)
+                const BosDurum(
+                    ikon: Icons.handshake_outlined,
+                    yazi: 'Henüz aracı adı girilmiş satış yok.')
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final a in tumu)
+                      FilterChip(
+                        label: Text(a),
+                        selected: secili.contains(a) || araMetni(a) == otomatik,
+                        onSelected: araMetni(a) == otomatik
+                            ? null
+                            : (v) => set(() => v ? secili.add(a) : secili.remove(a)),
+                        selectedColor: Renk.anaAcik,
+                        checkmarkColor: Renk.anaKoyu,
+                        showCheckmark: true,
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 16),
+              Buton(
+                yazi: 'Kaydet',
+                mesgul: mesgul,
+                onTap: () async {
+                  set(() => mesgul = true);
+                  try {
+                    await Veri.firmaGuncelle(
+                        d.fid, {'sahaAraci.$u': secili.toList()});
+                    if (c.mounted) Navigator.pop(c);
+                    if (mounted) {
+                      bildir(context,
+                          'Kaydedildi. Eşleşen satışlar birkaç saniye içinde $ad sayfasına eklenir.');
+                    }
+                  } catch (e) {
+                    if (c.mounted) {
+                      set(() => mesgul = false);
+                      bildir(c, hataYazisi(e));
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+        });
+      },
+    );
+  }
+
   Widget _kodKutusu({
     required String baslik,
     required String kod,
@@ -597,7 +677,8 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                                             fontWeight: FontWeight.w600,
                                             color: Renk.yazi)),
                                     Text(
-                                        '${d.siparisler.where((x) => x.olusturan == u).length} satış girdi',
+                                        '${d.siparisler.where((x) => x.olusturan == u).length} satış girdi'
+                                        ' · ${d.bagliSatisSayisi(u)} aracı satışı',
                                         style: const TextStyle(
                                             color: Renk.soluk, fontSize: 12.5)),
                                   ],
@@ -606,7 +687,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                               if (yon)
                                 PopupMenuButton<String>(
                                   onSelected: (v) async {
-                                    if (v == 'ekip') {
+                                    if (v == 'eslestir') {
+                                      _araciEslestir(u);
+                                    } else if (v == 'ekip') {
                                       if (!await _onay('${d.isim(u)} ekibe alınsın mı?',
                                           'Tam yetkili olur: tüm siparişleri, raporları ve ciroyu görür.',
                                           'Ekibe al')) {
@@ -632,6 +715,9 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                                     }
                                   },
                                   itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                        value: 'eslestir',
+                                        child: Text('Aracı adlarını eşleştir')),
                                     PopupMenuItem(
                                         value: 'ekip',
                                         child: Text('Ekibe al (tam yetki)')),

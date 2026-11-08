@@ -110,6 +110,7 @@ class Siparis {
     this.sonIslemTarih = 0,
     this.sonIslemTutar = 0,
     this.sonIslemYontem = '',
+    this.gorenler = const [],
   });
 
   final String id;
@@ -141,6 +142,10 @@ class Siparis {
   final int sonIslemTarih;
   final double sonIslemTutar;
   final String sonIslemYontem;
+
+  /// Bu satışı görebilen saha çalışanları (aracı olduğu satışlar).
+  /// Yöneticinin uygulaması aracı adına göre kendiliğinden doldurur.
+  final List<String> gorenler;
 
   double get toplam => fiyat == null ? 0 : miktar * fiyat!;
   double get odenen => tahsilatlar.fold(0.0, (a, t) => a + t.tutar);
@@ -192,6 +197,7 @@ class Siparis {
         sonIslemTarih: _i((m['sonIslem'] as Map?)?['tarih']),
         sonIslemTutar: _d((m['sonIslem'] as Map?)?['tutar']),
         sonIslemYontem: _s((m['sonIslem'] as Map?)?['yontem']),
+        gorenler: _ls(m['gorenler']),
       );
 }
 
@@ -204,6 +210,7 @@ class Firma {
     required this.uyeler,
     required this.yoneticiler,
     this.saha = const [],
+    this.sahaAraci = const {},
     required this.birimler,
     required this.urunler,
     required this.kod,
@@ -220,6 +227,10 @@ class Firma {
 
   /// Saha çalışanları: yalnızca hızlı satış ekranını ve kendi girdiklerini görür.
   final List<String> saha;
+
+  /// Saha çalışanı → ona ait sayılan aracı adları (yöneticinin seçtikleri).
+  /// Çalışanın kendi adıyla yazılmış aracı satışları ayrıca kendiliğinden eşleşir.
+  final Map<String, List<String>> sahaAraci;
   final List<String> birimler;
   final List<Urun> urunler;
   /// Eski sürümlerde davet kodu firma kaydındaydı; artık gizli/kodlar'da.
@@ -249,6 +260,12 @@ class Firma {
         uyeler: _ls(m['uyeler']),
         yoneticiler: _ls(m['yoneticiler']),
         saha: _ls(m['saha']),
+        sahaAraci: (m['sahaAraci'] is Map)
+            ? {
+                for (final e in (m['sahaAraci'] as Map).entries)
+                  '${e.key}': _ls(e.value)
+              }
+            : const {},
         birimler: _ls(m['birimler']),
         urunler: (m['urunler'] is List)
             ? (m['urunler'] as List).whereType<Map>().map(Urun.fromMap).toList()
