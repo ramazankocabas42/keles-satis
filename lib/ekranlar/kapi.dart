@@ -5,6 +5,7 @@ import '../servis/veri.dart';
 import '../tema.dart';
 import 'ana.dart';
 import 'giris.dart';
+import 'saha.dart';
 
 /// Oturum → profil → firma sırasıyla doğru ekranı gösterir.
 class Kapi extends StatelessWidget {
@@ -88,7 +89,7 @@ class _FirmaKapiState extends State<_FirmaKapi> {
       listenable: _durum,
       builder: (context, _) {
         final d = _durum;
-        if (d.firmaHata != null || d.firmaYok || (d.firma != null && !d.uye)) {
+        if (d.firmaHata != null || d.firmaYok || (d.firma != null && !d.uye && !d.saha)) {
           return Scaffold(
             body: SafeArea(
               child: Center(
@@ -124,7 +125,7 @@ class _FirmaKapiState extends State<_FirmaKapi> {
           );
         }
         if (d.firma == null) return const _Yukleniyor();
-        return AnaKabuk(durum: d);
+        return d.saha ? SahaKabuk(durum: d) : AnaKabuk(durum: d);
       },
     );
   }

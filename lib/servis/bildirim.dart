@@ -218,8 +218,10 @@ class Hareketler {
     switch (s.sonIslemTur) {
       case 'siparis':
         return (
-          'Yeni sipariş #${s.no} · ${s.musteri}',
+          '${s.teslim ? 'Yeni satış' : 'Yeni sipariş'} #${s.no} · ${s.musteri}',
           '$kim girdi: $urun${s.fiyat != null ? ' · ${tl(s.toplam)}' : ''}'
+              '${s.teslim ? ' · teslim edildi' : ''}'
+              '${s.odenen > 0 ? ' · ${tl(s.odenen)} tahsil edildi' : ''}'
         );
       case 'fiyat':
         return (

@@ -50,7 +50,21 @@ class SiparisKarti extends StatelessWidget {
     final a = s.asama;
     final fiyatli = s.fiyat != null;
 
-    final Widget? eylem = switch (a) {
+    final Widget? eylem = durum.saha
+        ? (!s.teslim
+            ? Buton(
+                yazi: 'Teslim Edildi',
+                ikon: Icons.check,
+                yukseklik: 40,
+                onTap: () => teslimEt(context, durum, s))
+            : (s.fiyat != null && s.kalan > 0)
+                ? Buton(
+                    yazi: 'Tahsilat Gir',
+                    ikon: Icons.payments_outlined,
+                    yukseklik: 40,
+                    onTap: () => tahsilEt(context, durum, s))
+                : null)
+        : switch (a) {
       Asama.fiyat => Buton(
           yazi: 'Fiyat Gir',
           ikon: Icons.sell_outlined,
@@ -68,6 +82,7 @@ class SiparisKarti extends StatelessWidget {
           onTap: () => tahsilEt(context, durum, s)),
       Asama.tamam => null,
     };
+    final sahaci = durum.firma?.saha.contains(s.olusturan) ?? false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -145,7 +160,8 @@ class SiparisKarti extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        '${once(s.sonIslem)} · ${durum.isim(s.olusturan)}',
+                        '${once(s.sonIslem)} · ${durum.isim(s.olusturan)}'
+                        '${sahaci && !durum.saha ? ' (saha)' : ''}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12.5, color: Renk.soluk),

@@ -38,9 +38,12 @@ class Veri {
   static Future<void> adKaydet(String uid, String ad) =>
       kullanicilar.doc(uid).set({'ad': ad.trim()}, SetOptions(merge: true));
 
+  static DocumentReference<Map<String, dynamic>> gizli(String fid) =>
+      firmalar.doc(fid).collection('gizli').doc('kodlar');
+
   static Future<void> firmaKur(String uid, String ad, String firmaAdi) async {
     final f = firmalar.doc();
-    final kod = yeniKod();
+    final kod = yeniKod(), sahaKod = yeniKod();
     final b = _db.batch();
     b.set(f, {
       'ad': firmaAdi.trim().toUpperCase(),
@@ -48,18 +51,21 @@ class Veri {
       'sahip': uid,
       'uyeler': [uid],
       'yoneticiler': [uid],
+      'saha': <String>[],
       'birimler': varsayilanBirimler,
       'urunler': <Map<String, dynamic>>[],
-      'kod': kod,
       'sayac': 0,
     });
-    b.set(kodlar.doc(kod), {'firmaId': f.id});
+    b.set(gizli(f.id), {'kod': kod, 'sahaKod': sahaKod});
+    b.set(kodlar.doc(kod), {'firmaId': f.id, 'tur': 'ekip'});
+    b.set(kodlar.doc(sahaKod), {'firmaId': f.id, 'tur': 'saha'});
     b.set(kullanicilar.doc(uid), {'ad': ad.trim(), 'firmaId': f.id},
         SetOptions(merge: true));
     await b.commit();
   }
 
-  /// Davet koduyla firmaya katılır. Kod yanlışsa açıklayıcı hata atar.
+  /// Davet koduyla firmaya katılır: ekip kodu tam üye, saha kodu saha
+  /// çalışanı yapar. Kod yanlışsa açıklayıcı hata atar.
   static Future<void> kodlaKatil(String uid, String ad, String kodYazi) async {
     final kod = kodYazi.trim().toUpperCase().replaceAll(' ', '');
     final k = await kodlar.doc(kod).get();
@@ -67,13 +73,41 @@ class Veri {
     if (!k.exists || fid == null) {
       throw 'Bu davet kodu bulunamadı. Kodu yöneticiden tekrar isteyin.';
     }
-    await firmalar.doc(fid).update({
-      'uyeler': FieldValue.arrayUnion([uid]),
-      'katilKod': kod,
+    final saha = k.data()?['tur'] == 'saha';
+    final b = _db.batch();
+    b.set(firmalar.doc(fid).collection('katilim').doc(uid), {'kod': kod});
+    b.update(firmalar.doc(fid), {
+      saha ? 'saha' : 'uyeler': FieldValue.arrayUnion([uid]),
     });
-    await kullanicilar
-        .doc(uid)
-        .set({'ad': ad.trim(), 'firmaId': fid}, SetOptions(merge: true));
+    b.set(kullanicilar.doc(uid), {'ad': ad.trim(), 'firmaId': fid},
+        SetOptions(merge: true));
+    try {
+      await b.commit();
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw 'Bu kod artık geçerli değil. Yöneticiden yeni kodu isteyin.';
+      }
+      rethrow;
+    }
+  }
+
+  /// Eski sürümden kalan, firma kaydındaki davet kodunu yalnızca
+  /// yöneticilerin okuyabildiği yere taşır ve bir saha kodu üretir.
+  static Future<void> kodlariTasi(Firma f) async {
+    final g = await gizli(f.id).get();
+    final b = _db.batch();
+    if (!g.exists) {
+      final kod = f.kod.isNotEmpty ? f.kod : yeniKod();
+      final sahaKod = yeniKod();
+      b.set(gizli(f.id), {'kod': kod, 'sahaKod': sahaKod});
+      b.set(kodlar.doc(kod), {'firmaId': f.id, 'tur': 'ekip'});
+      b.set(kodlar.doc(sahaKod), {'firmaId': f.id, 'tur': 'saha'});
+    }
+    b.update(firmalar.doc(f.id), {
+      'kod': FieldValue.delete(),
+      'katilKod': FieldValue.delete(),
+    });
+    await b.commit();
   }
 
   static Future<void> firmadanAyril(String uid) =>
@@ -135,12 +169,14 @@ class Veri {
   static Future<void> firmaGuncelle(String fid, Map<String, dynamic> veri) =>
       firmalar.doc(fid).update(veri);
 
-  static Future<void> kodYenile(Firma f) async {
+  /// Ekip ya da saha davet kodunu yeniler; eski kod çalışmaz olur.
+  static Future<void> kodYenile(String fid,
+      {required bool saha, required String eski}) async {
     final yeni = yeniKod();
     final b = _db.batch();
-    b.set(kodlar.doc(yeni), {'firmaId': f.id});
-    if (f.kod.isNotEmpty) b.delete(kodlar.doc(f.kod));
-    b.update(firmalar.doc(f.id), {'kod': yeni});
+    b.set(kodlar.doc(yeni), {'firmaId': fid, 'tur': saha ? 'saha' : 'ekip'});
+    b.set(gizli(fid), {saha ? 'sahaKod' : 'kod': yeni}, SetOptions(merge: true));
+    if (eski.isNotEmpty) b.delete(kodlar.doc(eski));
     await b.commit();
   }
 }
@@ -152,22 +188,72 @@ class Durum extends ChangeNotifier {
       firma = s.exists ? Firma.fromMap(s.id, s.data()!) : null;
       firmaYok = !s.exists;
       firmaHata = null;
+      _rolDegisti();
       notifyListeners();
     }, onError: (Object e) {
       firmaHata = e;
       notifyListeners();
     });
-    _sAbone = Veri.siparisler(fid)
-        .orderBy('guncelleme', descending: true)
-        .limit(2000)
-        .snapshots()
-        .listen((s) {
-      siparisler = s.docs.map((d) => Siparis.fromMap(d.id, d.data())).toList();
+  }
+
+  /// Rol: 'uye' (tam yetki), 'saha' (yalnızca kendi siparişleri) ya da null.
+  String? _rol;
+  bool _tasindi = false;
+
+  void _rolDegisti() {
+    final yeni = uye ? 'uye' : (saha ? 'saha' : null);
+    if (yeni != _rol) {
+      _rol = yeni;
+      _sAbone?.cancel();
+      _sAbone = null;
+      siparisler = const [];
+      yuklendi = false;
+      if (yeni != null) _siparisleriDinle(yeni == 'saha');
+    }
+    final y = yonetici;
+    if (y && _gAbone == null) {
+      _gAbone = Veri.gizli(fid).snapshots().listen((g) {
+        ekipKodu = (g.data()?['kod'] as String?) ?? '';
+        sahaKodu = (g.data()?['sahaKod'] as String?) ?? '';
+        notifyListeners();
+      }, onError: (_) {});
+    } else if (!y && _gAbone != null) {
+      _gAbone?.cancel();
+      _gAbone = null;
+    }
+    // Eski sürümden kalan davet kodunu güvenli yere taşı (bir kez).
+    final f = firma;
+    if (y && f != null && !_tasindi) {
+      _tasindi = true;
+      () async {
+        try {
+          final g = await Veri.gizli(fid).get();
+          if (!g.exists || f.eskiKodVar) await Veri.kodlariTasi(f);
+        } catch (e) {
+          _tasindi = false;
+          debugPrint('Kodlar taşınamadı: $e');
+        }
+      }();
+    }
+  }
+
+  void _siparisleriDinle(bool sadeceKendim) {
+    // Saha çalışanı yalnızca kendi girdiklerini okuyabilir (kurallar da
+    // bunu zorunlu tutar); sıralama telefonda yapılır.
+    final Query<Map<String, dynamic>> q = sadeceKendim
+        ? Veri.siparisler(fid).where('olusturan', isEqualTo: uid).limit(2000)
+        : Veri.siparisler(fid)
+            .orderBy('guncelleme', descending: true)
+            .limit(2000);
+    _sAbone = q.snapshots().listen((s) {
+      final l = s.docs.map((d) => Siparis.fromMap(d.id, d.data())).toList();
+      if (sadeceKendim) l.sort((a, b) => b.sonIslem.compareTo(a.sonIslem));
+      siparisler = l;
       yuklendi = true;
       siparisHata = null;
       notifyListeners();
       _isimleriGetir();
-      if (!s.metadata.isFromCache) {
+      if (!sadeceKendim && !s.metadata.isFromCache) {
         Hareketler.isle(fid, uid, siparisler, isimBul: _isimBekle);
       }
     }, onError: (Object e) {
@@ -189,8 +275,16 @@ class Durum extends ChangeNotifier {
   final Set<String> _istenen = {};
   StreamSubscription? _fAbone;
   StreamSubscription? _sAbone;
+  StreamSubscription? _gAbone;
+
+  /// Yalnızca yöneticide dolar.
+  String ekipKodu = '';
+  String sahaKodu = '';
 
   bool get uye => firma != null && firma!.uyeler.contains(uid);
+
+  /// Saha çalışanı (tam üye değilse).
+  bool get saha => firma != null && !uye && firma!.saha.contains(uid);
   bool get yonetici => firma?.yonetici(uid) ?? false;
 
   List<Siparis> asamada(Asama a) =>
@@ -210,7 +304,7 @@ class Durum extends ChangeNotifier {
   }
 
   void _isimleriGetir() {
-    final ids = <String>{...?firma?.uyeler};
+    final ids = <String>{...?firma?.uyeler, ...?firma?.saha};
     for (final s in siparisler) {
       ids.addAll([s.olusturan, s.fiyatlayan, s.teslimEden]);
       for (final t in s.tahsilatlar) {
@@ -258,6 +352,7 @@ class Durum extends ChangeNotifier {
   void dispose() {
     _fAbone?.cancel();
     _sAbone?.cancel();
+    _gAbone?.cancel();
     super.dispose();
   }
 }

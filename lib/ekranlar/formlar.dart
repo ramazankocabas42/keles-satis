@@ -64,7 +64,9 @@ Widget _butonlar(BuildContext context,
 
 // ---------------------------------------------------------------- Yeni sipariş
 
-Future<void> yeniSiparis(BuildContext context, Durum d) {
+/// Yeni sipariş. [hizli]: saha için "teslim edildi" ve tahsilat aynı formda
+/// açık gelir (satış, teslim ve tahsilat tek seferde).
+Future<void> yeniSiparis(BuildContext context, Durum d, {bool hizli = false}) {
   final f = d.firma!;
   final musteriler = {for (final s in d.siparisler) s.musteri.trim()}
     ..removeWhere((e) => e.isEmpty);
@@ -76,8 +78,10 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
 
   return altSayfa(
     context,
-    baslik: 'Yeni sipariş',
-    aciklama: 'Önce siparişi girin; fiyat bir sonraki adımda yazılır.',
+    baslik: hizli ? 'Yeni satış' : 'Yeni sipariş',
+    aciklama: hizli
+        ? 'Satışı, teslimi ve tahsilatı tek seferde girin.'
+        : 'Önce siparişi girin; fiyat bir sonraki adımda yazılır.',
     builder: (ctx) {
       final musteri = TextEditingController();
       final urun = TextEditingController();
@@ -87,6 +91,9 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
       final urunOdak = FocusNode();
       final araci = TextEditingController();
       final araciOdak = FocusNode();
+      final tahsil = TextEditingController();
+      var teslimEdildi = hizli;
+      var yontem = yontemler.first;
       var birim = f.birimListesi.first;
       var birimler = [...f.birimListesi];
       var mesgul = false;
@@ -125,6 +132,12 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
             bildir(ctx, 'Fiyat geçersiz.');
             return;
           }
+          final tHam = teslimEdildi ? tahsil.text.trim() : '';
+          final t = tHam.isEmpty ? 0.0 : sayiOku(tHam);
+          if (t == null || t < 0) {
+            bildir(ctx, 'Tahsil edilen tutar geçersiz.');
+            return;
+          }
           set(() => mesgul = true);
           final simdi = Veri.simdi;
           int? no;
@@ -142,17 +155,25 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
               'fiyat': fy,
               'fiyatlayan': fy != null ? d.uid : '',
               'fiyatTarih': fy != null ? simdi : 0,
-              'teslim': false,
-              'teslimEden': '',
-              'teslimTarih': 0,
+              'teslim': teslimEdildi,
+              'teslimEden': teslimEdildi ? d.uid : '',
+              'teslimTarih': teslimEdildi ? simdi : 0,
               'teslimNot': '',
-              'tahsilatlar': <Map<String, dynamic>>[],
+              'tahsilatlar': [
+                if (t > 0)
+                  Tahsilat(tutar: t, yontem: yontem, tarih: simdi, by: d.uid)
+                      .toMap(),
+              ],
             });
           });
           if (!ctx.mounted) return;
           if (ok) {
             Navigator.pop(ctx);
-            bildir(context, '#$no sipariş kaydedildi');
+            bildir(
+                context,
+                hizli
+                    ? '#$no satış kaydedildi${t > 0 ? ' · ${tl(t)} tahsil edildi' : ''}'
+                    : '#$no sipariş kaydedildi');
           } else {
             set(() => mesgul = false);
           }
@@ -242,6 +263,50 @@ Future<void> yeniSiparis(BuildContext context, Durum d) {
                   labelText: 'Not (isteğe bağlı)',
                   hintText: 'Teslim adresi, tarih vb.'),
             ),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: teslimEdildi,
+              onChanged: (v) => set(() => teslimEdildi = v ?? false),
+              title: const Text('Ürün teslim edildi',
+                  style: TextStyle(fontSize: 15, color: Renk.yazi)),
+              subtitle: const Text('İşaretlerseniz teslimde alınan parayı da girebilirsiniz',
+                  style: TextStyle(fontSize: 12.5, color: Renk.soluk)),
+            ),
+            if (teslimEdildi) ...[
+              const SizedBox(height: 6),
+              _ikili(
+                TextField(
+                  controller: tahsil,
+                  onChanged: (_) => set(() {}),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                      labelText: 'Tahsil edilen ₺', hintText: 'Alınmadıysa boş'),
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: yontem,
+                  isExpanded: true,
+                  dropdownColor: Colors.white,
+                  decoration: const InputDecoration(labelText: 'Yöntem'),
+                  items: [
+                    for (final y in yontemler)
+                      DropdownMenuItem(value: y, child: Text(y))
+                  ],
+                  onChanged: (v) => yontem = v ?? yontem,
+                ),
+              ),
+              if ((hesap.kaydedilecekFiyat ?? 0) > 0 && (hesap.m ?? 0) > 0)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ActionChip(
+                    label: Text(
+                        'Tamamı alındı (${tl(hesap.m! * hesap.kaydedilecekFiyat!)})'),
+                    onPressed: () => set(() => tahsil.text = girdi(double.parse(
+                        (hesap.m! * hesap.kaydedilecekFiyat!).toStringAsFixed(2)))),
+                  ),
+                ),
+            ],
             const SizedBox(height: 16),
             _butonlar(ctx,
                 yazi: 'Kaydet',
@@ -424,7 +489,8 @@ Future<void> teslimEt(BuildContext context, Durum d, Siparis s) {
     context,
     baslik: 'Teslim · Sipariş #${s.no}',
     aciklama:
-        '${s.musteri} — ${sayi(s.miktar)} ${s.birim} ${s.urun} · ${tl(s.toplam)}',
+        '${s.musteri} — ${sayi(s.miktar)} ${s.birim} ${s.urun}'
+        '${s.fiyat != null ? ' · ${tl(s.toplam)}' : ''}',
     builder: (ctx) {
       final not = TextEditingController();
       final tutar = TextEditingController();
@@ -497,13 +563,14 @@ Future<void> teslimEt(BuildContext context, Durum d, Siparis s) {
               ),
             ),
             const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ActionChip(
-                label: Text('Tamamı alındı (${tl(s.kalan)})'),
-                onPressed: () => set(() => tutar.text = girdi(s.kalan)),
+            if (s.kalan > 0)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ActionChip(
+                  label: Text('Tamamı alındı (${tl(s.kalan)})'),
+                  onPressed: () => set(() => tutar.text = girdi(s.kalan)),
+                ),
               ),
-            ),
             const SizedBox(height: 14),
             _butonlar(ctx,
                 yazi: '✓ Teslim Edildi',
@@ -632,7 +699,7 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
       builder: (ctx, _) {
         final s = d.siparisler.firstWhere((x) => x.id == s0.id,
             orElse: () => s0);
-        final silinebilir = d.yonetici || s.olusturan == d.uid;
+        final silinebilir = !d.saha && (d.yonetici || s.olusturan == d.uid);
         Widget satir(IconData ikon, String yazi, String kim, int t,
                 {Widget? sag}) =>
             Padding(
@@ -805,12 +872,12 @@ Future<void> detayGoster(BuildContext context, Durum d, Siparis s0) {
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (s.fiyat != null)
+                if (s.fiyat != null && !d.saha)
                   _kucuk('Fiyatı düzelt', ButonRenk.ikincil, () {
                     Navigator.pop(ctx);
                     fiyatGir(context, d, s);
                   }),
-                if (s.asama == Asama.teslim)
+                if (s.asama == Asama.teslim || (d.saha && !s.teslim))
                   _kucuk('Teslim edildi', ButonRenk.birincil, () {
                     Navigator.pop(ctx);
                     teslimEt(context, d, s);

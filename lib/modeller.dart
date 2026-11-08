@@ -203,10 +203,12 @@ class Firma {
     required this.sahip,
     required this.uyeler,
     required this.yoneticiler,
+    this.saha = const [],
     required this.birimler,
     required this.urunler,
     required this.kod,
     required this.sayac,
+    this.eskiKodVar = false,
   });
 
   final String id;
@@ -215,10 +217,17 @@ class Firma {
   final String sahip;
   final List<String> uyeler;
   final List<String> yoneticiler;
+
+  /// Saha çalışanları: yalnızca hızlı satış ekranını ve kendi girdiklerini görür.
+  final List<String> saha;
   final List<String> birimler;
   final List<Urun> urunler;
+  /// Eski sürümlerde davet kodu firma kaydındaydı; artık gizli/kodlar'da.
   final String kod;
   final int sayac;
+
+  /// Firma kaydında eski sürümden kalan kod alanları var mı (taşınmalı).
+  final bool eskiKodVar;
 
   bool yonetici(String uid) => yoneticiler.contains(uid);
   List<String> get birimListesi =>
@@ -239,12 +248,14 @@ class Firma {
         sahip: _s(m['sahip']),
         uyeler: _ls(m['uyeler']),
         yoneticiler: _ls(m['yoneticiler']),
+        saha: _ls(m['saha']),
         birimler: _ls(m['birimler']),
         urunler: (m['urunler'] is List)
             ? (m['urunler'] as List).whereType<Map>().map(Urun.fromMap).toList()
             : const [],
         kod: _s(m['kod']),
         sayac: _i(m['sayac']),
+        eskiKodVar: m.containsKey('kod') || m.containsKey('katilKod'),
       );
 }
 

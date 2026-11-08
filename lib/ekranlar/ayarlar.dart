@@ -58,6 +58,81 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
     }
   }
 
+  Widget _kodKutusu({
+    required String baslik,
+    required String kod,
+    required bool saha,
+    required String aciklama,
+  }) {
+    final f = d.firma!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(baslik, style: const TextStyle(color: Renk.soluk, fontSize: 13.5)),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: saha ? Renk.amberAcik : Renk.anaAcik,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: saha ? const Color(0xFFFCD34D) : Renk.ana),
+                ),
+                child: kod.isEmpty
+                    ? const SizedBox(
+                        height: 28,
+                        child: Center(
+                            child: Text('Hazırlanıyor…',
+                                style: TextStyle(color: Renk.soluk))))
+                    : SelectableText(kod,
+                        style: TextStyle(
+                            fontSize: 22,
+                            letterSpacing: 4,
+                            fontWeight: FontWeight.w700,
+                            color: saha ? Renk.amber : Renk.anaKoyu)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filledTonal(
+              tooltip: 'Kopyala',
+              icon: const Icon(Icons.copy),
+              onPressed: kod.isEmpty
+                  ? null
+                  : () async {
+                      await Clipboard.setData(ClipboardData(
+                          text: saha
+                              ? '${f.ad} Hızlı Satış için: Keleş Satış uygulamasını kurun, hesap açın, "Kodla katıl" deyip şu kodu yazın: $kod\nUygulama: https://github.com/ramazankocabas42/keles-satis/releases/latest/download/keles-satis.apk'
+                              : '${f.ad} satış uygulamasına katılmak için davet kodu: $kod\nUygulama: https://github.com/ramazankocabas42/keles-satis/releases/latest/download/keles-satis.apk'));
+                      if (mounted) bildir(context, 'Kod ve uygulama linki kopyalandı');
+                    },
+            ),
+            IconButton.filledTonal(
+              tooltip: 'Yeni kod',
+              icon: const Icon(Icons.refresh),
+              onPressed: kod.isEmpty
+                  ? null
+                  : () async {
+                      if (!await _onay('Kod yenilensin mi?',
+                          'Eski kod artık çalışmaz. Daha önce katılanlar etkilenmez.',
+                          'Yenile')) {
+                        return;
+                      }
+                      await _calistir(
+                          () => Veri.kodYenile(d.fid, saha: saha, eski: kod),
+                          'Yeni kod oluşturuldu');
+                    },
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(aciklama, style: const TextStyle(color: Renk.soluk, fontSize: 12.5)),
+      ],
+    );
+  }
+
   Future<bool> _onay(String baslik, String yazi, String evet) async {
     final r = await showDialog<bool>(
       context: context,
@@ -393,57 +468,12 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (yon) ...[
-                      const Text('Davet kodu',
-                          style: TextStyle(color: Renk.soluk, fontSize: 13.5)),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Renk.anaAcik,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: Renk.ana),
-                              ),
-                              child: SelectableText(f.kod,
-                                  style: const TextStyle(
-                                      fontSize: 24,
-                                      letterSpacing: 4,
-                                      fontWeight: FontWeight.w800,
-                                      color: Renk.anaKoyu)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: 'Kopyala',
-                            icon: const Icon(Icons.copy),
-                            onPressed: () async {
-                              await Clipboard.setData(ClipboardData(
-                                  text:
-                                      '${f.ad} satış uygulamasına katılmak için davet kodu: ${f.kod}'));
-                              if (context.mounted) bildir(context, 'Kod kopyalandı');
-                            },
-                          ),
-                          IconButton.filledTonal(
-                            tooltip: 'Yeni kod',
-                            icon: const Icon(Icons.refresh),
-                            onPressed: () async {
-                              if (!await _onay('Kod yenilensin mi?',
-                                  'Eski kod artık çalışmaz. Ekipteki kişiler etkilenmez.',
-                                  'Yenile')) {
-                                return;
-                              }
-                              await _calistir(() => Veri.kodYenile(f), 'Yeni kod oluşturuldu');
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Çalışan uygulamayı kurup hesap açar, "Kodla katıl" der ve bu kodu yazar.',
-                        style: TextStyle(color: Renk.soluk, fontSize: 13),
+                      _kodKutusu(
+                        baslik: 'Ekip davet kodu (tam yetkili kullanıcı)',
+                        kod: d.ekipKodu,
+                        saha: false,
+                        aciklama:
+                            'Ofis çalışanları için. Tüm siparişleri, raporları görür.',
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -522,6 +552,99 @@ class _AyarlarEkraniState extends State<AyarlarEkrani> {
                   ],
                 ),
               ),
+
+              // ---------------- Saha ekibi
+              if (yon || f.saha.isNotEmpty)
+                Panel(
+                  baslik: 'Saha ekibi (Hızlı Satış)',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (yon) ...[
+                        _kodKutusu(
+                          baslik: 'Saha davet kodu',
+                          kod: d.sahaKodu,
+                          saha: true,
+                          aciklama:
+                              'Sahada çalışanlar ve 3. şahıslar için. Yalnızca sipariş, teslim ve tahsilat girer; sadece kendi girdiklerini görür. Fiyat, ciro, raporlar ve ayarlar kapalıdır.',
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (f.saha.isEmpty)
+                        const Text('Henüz saha çalışanı yok.',
+                            style: TextStyle(color: Renk.soluk, fontSize: 13.5)),
+                      for (final u in f.saha)
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: Renk.cizgi))),
+                          child: Row(
+                            children: [
+                              const CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Renk.amberAcik,
+                                child: Icon(Icons.directions_walk,
+                                    size: 18, color: Renk.amber),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(d.isim(u),
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Renk.yazi)),
+                                    Text(
+                                        '${d.siparisler.where((x) => x.olusturan == u).length} satış girdi',
+                                        style: const TextStyle(
+                                            color: Renk.soluk, fontSize: 12.5)),
+                                  ],
+                                ),
+                              ),
+                              if (yon)
+                                PopupMenuButton<String>(
+                                  onSelected: (v) async {
+                                    if (v == 'ekip') {
+                                      if (!await _onay('${d.isim(u)} ekibe alınsın mı?',
+                                          'Tam yetkili olur: tüm siparişleri, raporları ve ciroyu görür.',
+                                          'Ekibe al')) {
+                                        return;
+                                      }
+                                      await _calistir(
+                                          () => Veri.firmaGuncelle(d.fid, {
+                                                'saha': List<String>.of(f.saha)..remove(u),
+                                                'uyeler': [...f.uyeler, u],
+                                              }),
+                                          'Ekibe alındı');
+                                    } else if (v == 'cik') {
+                                      if (!await _onay('${d.isim(u)} çıkarılsın mı?',
+                                          'Artık satış giremez. Girdiği satışlar kayıtlarda kalır.',
+                                          'Çıkar')) {
+                                        return;
+                                      }
+                                      await _calistir(
+                                          () => Veri.firmaGuncelle(d.fid, {
+                                                'saha': List<String>.of(f.saha)..remove(u),
+                                              }),
+                                          'Saha ekibinden çıkarıldı');
+                                    }
+                                  },
+                                  itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                        value: 'ekip',
+                                        child: Text('Ekibe al (tam yetki)')),
+                                    PopupMenuItem(
+                                        value: 'cik', child: Text('Saha ekibinden çıkar')),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
             ],
           );
         },
